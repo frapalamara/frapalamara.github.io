@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>SUDOKUBE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+      height: 100dvh;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #container {
+      position: fixed;
+      inset: 0;
+    }
+
+    #container canvas { display: block; }
+
+    /* ── info hint ── */
+    #info {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      font-size: 11px;
+      color: #484f58;
+      pointer-events: none;
+      text-align: center;
+      letter-spacing: .3px;
+    }
+
+    /* ── bottom UI panel ── */
+    #ui {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 16px 18px;
+      gap: 10px;
+      background: linear-gradient(to top, rgba(13,17,23,.97) 75%, transparent);
+      pointer-events: none;
+    }
+
+    #ui > * { pointer-events: all; }
+
+    /* top bar */
+    #top-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding-top: 8px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #58a6ff;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    select, button {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
+      outline: none;
+    }
+
+    select:hover, button:hover { background: #2d333b; border-color: #58a6ff44; }
+    button:active { transform: scale(.95); }
+
+    #btn-new {
+      background: #1f6feb;
+      border-color: #2f81f7;
+      font-weight: 600;
+      padding: 6px 16px;
+    }
+    #btn-new:hover { background: #2f81f7; }
+
+    /* controls row */
+    #ctrls {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .grp {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+
+    .glbl {
+      font-size: 10px;
+      font-weight: 600;
+      color: #6e7681;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-right: 3px;
+    }
+
+    .axbtn {
+      width: 34px;
+      height: 34px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 0;
+      border-radius: 5px;
+      color: #8b949e;
+    }
+    .axbtn.active { color: #fff; }
+    .axbtn.active-x { background: #7a1a1a; border-color: #e05555; }
+    .axbtn.active-y { background: #1a6b22; border-color: #44c45a; }
+    .axbtn.active-z { background: #1f6feb; border-color: #2f81f7; }
+    .axbtn:hover:not(.active) { color: #e6edf3; }
+
+    #slice-lbl {
+      min-width: 42px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #58a6ff;
+    }
+
+    #btn-prev, #btn-next {
+      width: 30px; height: 30px;
+      padding: 0; font-size: 12px;
+      color: #8b949e;
+    }
+    #btn-prev:hover, #btn-next:hover { color: #e6edf3; }
+
+    .nbtn {
+      width: 38px; height: 38px;
+      font-size: 17px;
+      font-weight: 700;
+      padding: 0;
+      color: #e6edf3;
+      border-radius: 6px;
+    }
+    .nbtn:hover { background: #2d333b; border-color: #58a6ff55; }
+
+    #btn-clr {
+      width: 38px; height: 38px;
+      padding: 0;
+      font-size: 15px;
+      color: #f85149;
+      border-color: #2d1b1b;
+      border-radius: 6px;
+    }
+    #btn-clr:hover { background: #2d1b1b; border-color: #f85149; }
+
+    /* ── loading ── */
+    #loading {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(13,17,23,.88);
+      z-index: 100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      font-size: 15px;
+      color: #58a6ff;
+    }
+
+    .spin {
+      width: 38px; height: 38px;
+      border: 3px solid #21262d;
+      border-top-color: #58a6ff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── win overlay ── */
+    #win {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(13,17,23,.80);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #win-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      padding: 44px 52px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.6);
+    }
+
+    .win-icon {
+      font-size: 52px;
+      color: #3fb950;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    #win-card h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #e6edf3;
+      letter-spacing: 1px;
+    }
+
+    #win-card p {
+      color: #8b949e;
+      font-size: 14px;
+    }
+
+    #btn-again {
+      margin-top: 8px;
+      background: #1f6feb;
+      border-color: #2f81f7;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 10px 28px;
+    }
+    #btn-again:hover { background: #2f81f7; }
+
+    /* ── responsive ── */
+    @media (max-width: 500px) {
+      .title { font-size: 15px; }
+      .nbtn, #btn-clr { width: 34px; height: 34px; font-size: 15px; }
+      .axbtn { width: 30px; height: 30px; font-size: 12px; }
+      #win-card { padding: 32px 28px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="container"></div>
+
+  <p id="info">Click a cell in the highlighted slice &nbsp;·&nbsp; Type 1–4 &nbsp;·&nbsp; Arrow keys change slice</p>
+
+  <div id="ui">
+    <div id="top-bar">
+      <span class="title">3D Sudoku</span>
+      <select id="sel-diff">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      <button id="btn-new">New Game</button>
+    </div>
+
+    <div id="ctrls">
+      <div class="grp">
+        <span class="glbl">Axis</span>
+        <button id="btn-x" class="axbtn">X</button>
+        <button id="btn-y" class="axbtn">Y</button>
+        <button id="btn-z" class="axbtn active">Z</button>
+      </div>
+      <div class="grp">
+        <span class="glbl">Slice</span>
+        <button id="btn-prev">◀</button>
+        <span id="slice-lbl">1 / 4</span>
+        <button id="btn-next">▶</button>
+      </div>
+      <div class="grp">
+        <span class="glbl">Fill</span>
+        <button class="nbtn" data-n="1">1</button>
+        <button class="nbtn" data-n="2">2</button>
+        <button class="nbtn" data-n="3">3</button>
+        <button class="nbtn" data-n="4">4</button>
+        <button id="btn-clr">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading">
+    <div class="spin"></div>
+    <span>Generating puzzle…</span>
+  </div>
+
+  <div id="win">
+    <div id="win-card">
+      <div class="win-icon">✓</div>
+      <h2>Puzzle Solved!</h2>
+      <p>All 64 cells are correct.</p>
+      <button id="btn-again">Play Again</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 1 · SUDOKU LOGIC  (ported from generator.py)
+    // ═══════════════════════════════════════════════════════════
+
+    function make3(v = 0) {
+      return Array.from({ length: 4 }, () =>
+        Array.from({ length: 4 }, () => Array(4).fill(v)));
+    }
+
+    function copy3(g) {
+      return g.map(a => a.map(b => [...b]));
+    }
+
+    function shuffle(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = (Math.random() * (i + 1)) | 0;
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    /** True if num can be placed at (x,y,z) — identical logic to is_valid() in generator.py */
+    function isValid(g, x, y, z, n) {
+      // Axis checks
+      for (let i = 0; i < 4; i++) {
+        if (g[i][y][z] === n) return false; // X-axis
+        if (g[x][i][z] === n) return false; // Y-axis
+        if (g[x][y][i] === n) return false; // Z-axis
+      }
+      // 2×2 subgrid on XY plane (fixed z)
+      const sx = (x >> 1) << 1, sy = (y >> 1) << 1, sz = (z >> 1) << 1;
+      for (let a = sx; a < sx + 2; a++)
+        for (let b = sy; b < sy + 2; b++)
+          if (g[a][b][z] === n) return false;
+      // 2×2 subgrid on XZ plane (fixed y)
+      for (let a = sx; a < sx + 2; a++)
+        for (let c = sz; c < sz + 2; c++)
+          if (g[a][y][c] === n) return false;
+      // 2×2 subgrid on YZ plane (fixed x)
+      for (let b = sy; b < sy + 2; b++)
+        for (let c = sz; c < sz + 2; c++)
+          if (g[x][b][c] === n) return false;
+      return true;
+    }
+
+    function solveGrid(g) {
+      for (let x = 0; x < 4; x++)
+        for (let y = 0; y < 4; y++)
+          for (let z = 0; z < 4; z++)
+            if (g[x][y][z] === 0) {
+              for (const n of shuffle([1, 2, 3, 4])) {
+                if (isValid(g, x, y, z, n)) {
+                  g[x][y][z] = n;
+                  if (solveGrid(g)) return true;
+                  g[x][y][z] = 0;
+                }
+              }
+              return false;
+            }
+      return true;
+    }
+
+    function genSolution() {
+      const g = make3(0);
+      solveGrid(g);
+      return g;
+    }
+
+    /** Count solutions up to `max`; uses step-limit to stay fast */
+    function countSols(g, max = 2) {
+      let count = 0, steps = 0;
+      function s(h) {
+        if (count >= max || steps > 90000) return;
+        for (let x = 0; x < 4; x++)
+          for (let y = 0; y < 4; y++)
+            for (let z = 0; z < 4; z++)
+              if (h[x][y][z] === 0) {
+                for (let n = 1; n <= 4; n++)
+                  if (isValid(h, x, y, z, n)) {
+                    h[x][y][z] = n; steps++;
+                    s(h);
+                    h[x][y][z] = 0;
+                  }
+                return;
+              }
+        count++;
+      }
+      s(copy3(g));
+      return count;
+    }
+
+    /** Remove cells from solution while keeping a unique solution */
+    function makePuzzle(sol, diff) {
+      const targets = { easy: 18, medium: 32, hard: 46 };
+      const target  = targets[diff] ?? 32;
+      const puzzle  = copy3(sol);
+      const cells   = [];
+      for (let x = 0; x < 4; x++)
+        for (let y = 0; y < 4; y++)
+          for (let z = 0; z < 4; z++)
+            cells.push([x, y, z]);
+      shuffle(cells);
+      let removed = 0;
+      for (const [x, y, z] of cells) {
+        if (removed >= target) break;
+        const bak = puzzle[x][y][z];
+        puzzle[x][y][z] = 0;
+        if (countSols(puzzle) === 1) {
+          removed++;
+        } else {
+          puzzle[x][y][z] = bak; // restore — removal broke uniqueness
+        }
+      }
+      return puzzle;
+    }
+
+    /** Return set of keys "x,y,z" whose values conflict with another cell */
+    function getConflicts(player) {
+      const bad = new Set();
+      const c   = copy3(player);
+      for (let x = 0; x < 4; x++)
+        for (let y = 0; y < 4; y++)
+          for (let z = 0; z < 4; z++) {
+            const v = c[x][y][z];
+            if (!v) continue;
+            c[x][y][z] = 0;
+            if (!isValid(c, x, y, z, v)) bad.add(`${x},${y},${z}`);
+            c[x][y][z] = v;
+          }
+      return bad;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 2 · GAME STATE
+    // ═══════════════════════════════════════════════════════════
+
+    const S = {
+      sol:    null,   // [4][4][4] complete solution
+      clues:  null,   // [4][4][4] bool  – immutable given cells
+      player: null,   // [4][4][4] int   – player entries (0 = blank)
+      axis:   'z',    // 'x' | 'y' | 'z'
+      slice:  0,      // 0-3
+      sel:    null,   // {x,y,z} | null
+      diff:   'medium',
+      solved: false
+    };
+
+    function newGame() {
+      S.solved = false;
+      S.sel    = null;
+
+      S.sol   = genSolution();
+      const p = makePuzzle(S.sol, S.diff);
+
+      S.clues  = make3(false);
+      S.player = make3(0);
+
+      for (let x = 0; x < 4; x++)
+        for (let y = 0; y < 4; y++)
+          for (let z = 0; z < 4; z++)
+            if (p[x][y][z]) {
+              S.clues[x][y][z]  = true;
+              S.player[x][y][z] = p[x][y][z];
+            }
+
+      setAxis('z');
+      redraw();
+      syncUI();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 3 · THREE.JS SCENE
+    // ═══════════════════════════════════════════════════════════
+
+    // Per-axis color palettes  (face, clue-face, edge hex)
+    const AXIS_CLR = {
+      x: { face: 0x8b1a1a, clueFace: 0x6b1010, edge: 0xe05555 },
+      y: { face: 0x1a6b22, clueFace: 0x0f4a18, edge: 0x44c45a },
+      z: { face: 0x1d5fa0, clueFace: 0x1a4a88, edge: 0x4488cc },
+    };
+    const AXIS_CSS = { x: '#e05555', y: '#44c45a', z: '#4488cc' };
+
+    const SP         = 1.0;  // centre-to-centre spacing within a 2×2 group
+    const CS         = 0.9;  // cube side length (gap within group ≈ 0.10)
+    const BLOCK_GAP  = 0.05; // extra separation between the two 2×2 groups per axis
+    // → gap between groups ≈ 0.65, vs 0.10 within — visually distinct
+
+    /** Position on one axis, inserting the block gap between cells 1 and 2 */
+    function bp(i) { return (i - 1.5) * SP + (i >= 2 ? BLOCK_GAP * 0.5 : -BLOCK_GAP * 0.5); }
+
+    let rndr, scene, cam, pivot;
+    const meshes   = {}; // key → THREE.Mesh (cell face)
+    const eLines   = {}; // key → THREE.LineSegments (cell edges)
+    // faceData[key] = [{mat, ctx, tex}, …] for +Z, +X, +Y faces
+    const faceData = {};
+    const rc     = new THREE.Raycaster();
+    const pt     = new THREE.Vector2();
+
+    const ISO_VIEW_SIZE = 4.2; // orthographic half-height in world units
+
+    function initThree() {
+      const con = document.getElementById('container');
+
+      // WebGL renderer
+      rndr = new THREE.WebGLRenderer({ antialias: true });
+      rndr.setPixelRatio(Math.min(devicePixelRatio, 2));
+      rndr.setSize(innerWidth, innerHeight);
+      rndr.setClearColor(0x0d1117);
+      con.appendChild(rndr.domElement);
+
+      scene = new THREE.Scene();
+
+      // Orthographic camera at classic isometric position (equal distance on all axes)
+      const a = innerWidth / innerHeight;
+      const s = ISO_VIEW_SIZE;
+      cam = new THREE.OrthographicCamera(-a * s, a * s, s, -s, -50, 50);
+      cam.position.set(7, 7, 7);
+      cam.lookAt(0, 0, 0);
+
+      pivot = new THREE.Group(); // no rotation — iso camera shows all faces
+      scene.add(pivot);
+
+      // Shared geometries
+      const bGeo = new THREE.BoxGeometry(CS, CS, CS);
+      const eGeo = new THREE.EdgesGeometry(bGeo);
+
+      for (let x = 0; x < 4; x++)
+        for (let y = 0; y < 4; y++)
+          for (let z = 0; z < 4; z++) {
+            const k   = `${x},${y},${z}`;
+            const pos = new THREE.Vector3(bp(x), bp(y), bp(z));
+
+            // ── Cell face mesh ──
+            const mesh = new THREE.Mesh(
+              bGeo,
+              new THREE.MeshBasicMaterial({
+                color:      0x252a36,
+                transparent: true,
+                opacity:    0.06,
+                depthWrite: false
+              })
+            );
+            mesh.position.copy(pos);
+            mesh.userData = { x, y, z, k };
+            pivot.add(mesh);
+            meshes[k] = mesh;
+
+            // ── Cell edge lines ──
+            const el = new THREE.LineSegments(
+              eGeo,
+              new THREE.LineBasicMaterial({
+                color:       0x253646,
+                transparent: true,
+                opacity:     0.28
+              })
+            );
+            mesh.add(el);
+            eLines[k] = el;
+
+            // ── Face planes (dice-style numbers) ──
+            // Three planes on the three camera-facing faces: +Z, +X, +Y
+            const FACE_DEFS = [
+              { pos: [0,       0,       CS/2+.003], rot: [0, 0, 0]             },  // +Z
+              { pos: [CS/2+.003, 0,     0        ], rot: [0, Math.PI/2, 0]     },  // +X
+              { pos: [0,       CS/2+.003, 0      ], rot: [-Math.PI/2, 0, 0]    },  // +Y
+            ];
+            const pGeo = new THREE.PlaneGeometry(CS * 0.82, CS * 0.82);
+            faceData[k] = FACE_DEFS.map(({ pos, rot }) => {
+              const canvas = document.createElement('canvas');
+              canvas.width = canvas.height = 256;
+              const ctx = canvas.getContext('2d');
+              const tex = new THREE.CanvasTexture(canvas);
+              const mat = new THREE.MeshBasicMaterial({
+                map: tex, transparent: true, opacity: 0,
+                depthWrite: false, side: THREE.FrontSide
+              });
+              const plane = new THREE.Mesh(pGeo, mat);
+              plane.position.set(...pos);
+              plane.rotation.set(...rot);
+              mesh.add(plane);
+              return { mat, ctx, tex };
+            });
+          }
+
+      // ── 2×2 group border frames ──────────────────────────────
+      // Each 4×4 slice has four 2×2 sub-blocks. We draw one thin
+      // wireframe box per block (spanning both cells) so the groups
+      // are visible even on inactive slices.
+      buildBlockFrames();
+
+      // Events
+      con.addEventListener('pointerdown', onClick);
+      document.addEventListener('keydown', onKey);
+      window.addEventListener('resize', onResize);
+      con.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+    }
+
+    // Stores the 3×4 sets of block-frame lines: blockFrames[axis][slice][blockIdx]
+    const blockFrames = { x: [], y: [], z: [] };
+
+    function buildBlockFrames() {
+      // Half-size of a 2×2 block group (centre-to-edge including cell body)
+      const half = SP * 0.5 + CS * 0.5;   // from group centre to outer edge
+      const bGeo = new THREE.BoxGeometry(1, 1, 1); // scaled per frame
+      const eGeo = new THREE.EdgesGeometry(bGeo);
+
+      // For each axis, each of the 4 slices has four 2×2 blocks (bi,bj ∈ {0,1})
+      ['x','y','z'].forEach(axis => {
+        blockFrames[axis] = [];
+        for (let si = 0; si < 4; si++) {         // slice index
+          const frames = [];
+          for (let bi = 0; bi < 2; bi++) {        // block row
+            for (let bj = 0; bj < 2; bj++) {      // block col
+              // Centre of this 2×2 group in the two "free" axes
+              // Group 0 → cells 0,1 → centre at bp(0)+bp(1))/2
+              // Group 1 → cells 2,3 → centre at (bp(2)+bp(3))/2
+              const c0 = (bp(bi * 2) + bp(bi * 2 + 1)) / 2;
+              const c1 = (bp(bj * 2) + bp(bj * 2 + 1)) / 2;
+              const cs = bp(si); // position along the slice axis
+
+              let px, py, pz, sx, sy, sz;
+              if (axis === 'z') { px=c0; py=c1; pz=cs; sx=2*half; sy=2*half; sz=CS; }
+              else if (axis === 'x') { px=cs; py=c0; pz=c1; sx=CS; sy=2*half; sz=2*half; }
+              else               { px=c0; py=cs; pz=c1; sx=2*half; sy=CS; sz=2*half; }
+
+              const mat = new THREE.LineBasicMaterial({
+                color: 0x4a5568, transparent: true, opacity: 0.0
+              });
+              const frame = new THREE.LineSegments(eGeo, mat);
+              frame.position.set(px, py, pz);
+              frame.scale.set(sx, sy, sz);
+              pivot.add(frame);
+              frames.push(frame);
+            }
+          }
+          blockFrames[axis].push(frames);
+        }
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 4 · VISUALS
+    // ═══════════════════════════════════════════════════════════
+
+    function inSlice(x, y, z) {
+      return (S.axis === 'x' && x === S.slice) ||
+             (S.axis === 'y' && y === S.slice) ||
+             (S.axis === 'z' && z === S.slice);
+    }
+
+    const CANVAS_W = 256;
+
+    /** Draw a number on a face canvas. Pass num=0 to clear. */
+    function drawFace(ctx, tex, num, color, glowColor) {
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_W);
+      if (num > 0) {
+        ctx.font = `bold ${CANVAS_W * 0.72}px "Courier New", monospace`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        // drop shadow for depth
+        ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur  = 18;
+        ctx.fillStyle   = color;
+        ctx.fillText(String(num), CANVAS_W / 2, CANVAS_W / 2 + 8);
+        // optional glow pass
+        if (glowColor) {
+          ctx.shadowColor = glowColor;
+          ctx.shadowBlur  = 28;
+          ctx.fillText(String(num), CANVAS_W / 2, CANVAS_W / 2 + 8);
+        }
+        ctx.shadowBlur = 0;
+      }
+      tex.needsUpdate = true;
+    }
+
+    function redraw() {
+      if (!S.player) return;
+      const bad = getConflicts(S.player);
+      const ac  = AXIS_CLR[S.axis];
+
+      // ── Block frame visibility ──
+      ['x','y','z'].forEach(axis => {
+        blockFrames[axis].forEach((sliceFrames, si) => {
+          const isActive = axis === S.axis && si === S.slice;
+          sliceFrames.forEach(f => {
+            f.material.color.setHex(isActive ? AXIS_CLR[axis].edge : 0x2d3748);
+            f.material.opacity = isActive ? 0.85 : 0.12;
+          });
+        });
+      });
+
+      for (let x = 0; x < 4; x++)
+        for (let y = 0; y < 4; y++)
+          for (let z = 0; z < 4; z++) {
+            const k    = `${x},${y},${z}`;
+            const mat  = meshes[k].material;
+            const eMat = eLines[k].material;
+            const v    = S.player[x][y][z];
+            const act  = inSlice(x, y, z);
+            const sel  = S.sel && S.sel.x === x && S.sel.y === y && S.sel.z === z;
+            const clue = S.clues[x][y][z];
+            const err  = bad.has(k);
+
+            // ── Cell face colour (axis-tinted) ──
+            if (sel) {
+              mat.color.setHex(0x00ccaa); mat.opacity = 1.0;
+            } else if (act && err) {
+              mat.color.setHex(0xcc2222); mat.opacity = 1.0;
+            } else if (act && clue) {
+              mat.color.setHex(ac.clueFace); mat.opacity = 1.0;
+            } else if (act) {
+              mat.color.setHex(ac.face); mat.opacity = 1.0;
+            } else {
+              mat.color.setHex(0x252a36); mat.opacity = 0.06;
+            }
+
+            // ── Edge colour (axis-tinted) ──
+            if (act) {
+              eMat.color.setHex(ac.edge); eMat.opacity = 0.75;
+            } else {
+              eMat.color.setHex(0x253646); eMat.opacity = 0.22;
+            }
+
+            // ── Dice-face numbers ──
+            // Active slice → full opacity with appropriate color/glow
+            // Inactive      → faint (0.14) so context is still readable
+            const color = err   ? '#f87171'
+                        : clue  ? '#93c5fd'
+                                : '#ffd060';
+            const glow  = err   ? '#f8717166'
+                        : clue  ? null
+                                : '#ffd06055';
+            faceData[k].forEach(({ mat: fm, ctx, tex }) => {
+              if (v > 0 && act) {
+                fm.opacity = 1.0;
+                drawFace(ctx, tex, v, color, glow);
+              } else {
+                fm.opacity = 0;
+                drawFace(ctx, tex, 0, '', null);
+              }
+            });
+          }
+    }
+
+    /** Switch active axis — cube stays fixed in isometric position */
+    function setAxis(axis) {
+      S.axis  = axis;
+      S.slice = 0;
+      S.sel   = null;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 5 · INTERACTION
+    // ═══════════════════════════════════════════════════════════
+
+    function onClick(e) {
+      if (!S.player || S.solved) return;
+      const rect = rndr.domElement.getBoundingClientRect();
+      pt.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+      pt.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+      rc.setFromCamera(pt, cam);
+      const hits = rc.intersectObjects(Object.values(meshes));
+      for (const h of hits) {
+        const { x, y, z, k } = h.object.userData;
+        if (!inSlice(x, y, z)) continue;
+        // toggle selection
+        if (S.sel && S.sel.x === x && S.sel.y === y && S.sel.z === z) {
+          S.sel = null;
+        } else {
+          S.sel = { x, y, z };
+        }
+        redraw();
+        return;
+      }
+      S.sel = null;
+      redraw();
+    }
+
+    function fill(n) {
+      if (!S.sel || S.solved) return;
+      const { x, y, z } = S.sel;
+      if (S.clues[x][y][z]) return; // given cell — immutable
+      S.player[x][y][z] = n;
+      redraw();
+      checkWin();
+    }
+
+    function clrCell() {
+      if (!S.sel) return;
+      const { x, y, z } = S.sel;
+      if (S.clues[x][y][z]) return;
+      S.player[x][y][z] = 0;
+      redraw();
+    }
+
+    function checkWin() {
+      // All 64 cells must be filled with no conflicts
+      for (let x = 0; x < 4; x++)
+        for (let y = 0; y < 4; y++)
+          for (let z = 0; z < 4; z++)
+            if (!S.player[x][y][z]) return;
+      if (getConflicts(S.player).size > 0) return;
+      S.solved = true;
+      setTimeout(() => { document.getElementById('win').style.display = 'flex'; }, 350);
+    }
+
+    function chSlice(d) {
+      S.slice = ((S.slice + d) % 4 + 4) % 4;
+      S.sel   = null;
+      redraw();
+      syncUI();
+    }
+
+    function onKey(e) {
+      if (e.metaKey || e.ctrlKey || S.solved) return;
+      const k = e.key;
+      if ('1234'.includes(k) && k.length === 1) { e.preventDefault(); fill(+k); }
+      else if (k === 'Backspace' || k === 'Delete') { e.preventDefault(); clrCell(); }
+      else if (k === 'ArrowRight' || k === 'ArrowUp')   { e.preventDefault(); chSlice(+1); }
+      else if (k === 'ArrowLeft'  || k === 'ArrowDown')  { e.preventDefault(); chSlice(-1); }
+      else if (k === 'x' || k === 'X') setAxisAndSync('x');
+      else if (k === 'y' || k === 'Y') setAxisAndSync('y');
+      else if (k === 'z' || k === 'Z') setAxisAndSync('z');
+    }
+
+    function setAxisAndSync(a) { setAxis(a); redraw(); syncUI(); }
+
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 6 · UI HELPERS
+    // ═══════════════════════════════════════════════════════════
+
+    function syncUI() {
+      ['x', 'y', 'z'].forEach(a => {
+        const btn = document.getElementById(`btn-${a}`);
+        btn.classList.toggle('active',   S.axis === a);
+        btn.classList.toggle('active-x', S.axis === a && a === 'x');
+        btn.classList.toggle('active-y', S.axis === a && a === 'y');
+        btn.classList.toggle('active-z', S.axis === a && a === 'z');
+      });
+      const lbl = document.getElementById('slice-lbl');
+      lbl.textContent = `${S.slice + 1} / 4`;
+      lbl.style.color = AXIS_CSS[S.axis];
+    }
+
+    function onResize() {
+      const a = innerWidth / innerHeight;
+      const s = ISO_VIEW_SIZE;
+      cam.left   = -a * s;
+      cam.right  =  a * s;
+      cam.top    =  s;
+      cam.bottom = -s;
+      cam.updateProjectionMatrix();
+      rndr.setSize(innerWidth, innerHeight);
+    }
+
+    function showLoading(v) {
+      document.getElementById('loading').style.display = v ? 'flex' : 'none';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 7 · ANIMATION LOOP + INIT
+    // ═══════════════════════════════════════════════════════════
+
+    function loop() {
+      requestAnimationFrame(loop);
+      rndr.render(scene, cam);
+    }
+
+    function init() {
+      initThree();
+
+      // Axis buttons
+      ['x', 'y', 'z'].forEach(a =>
+        document.getElementById(`btn-${a}`).addEventListener('click', () =>
+          setAxisAndSync(a)));
+
+      // Slice buttons
+      document.getElementById('btn-prev').addEventListener('click', () => chSlice(-1));
+      document.getElementById('btn-next').addEventListener('click', () => chSlice(+1));
+
+      // Number pad
+      document.querySelectorAll('.nbtn').forEach(b =>
+        b.addEventListener('click', () => fill(+b.dataset.n)));
+      document.getElementById('btn-clr').addEventListener('click', clrCell);
+
+      // New game
+      document.getElementById('btn-new').addEventListener('click', () => {
+        S.diff = document.getElementById('sel-diff').value;
+        document.getElementById('win').style.display = 'none';
+        showLoading(true);
+        // Small delay so the loading UI has time to paint before the heavy compute
+        setTimeout(() => { newGame(); showLoading(false); }, 60);
+      });
+
+      document.getElementById('btn-again').addEventListener('click', () =>
+        document.getElementById('btn-new').click());
+
+      loop();
+
+      // First puzzle
+      showLoading(true);
+      setTimeout(() => { newGame(); showLoading(false); }, 60);
+    }
+
+    init();
+  </script>
+</body>
+</html>
