@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>SUDOKUBE</title>
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
@@ -19,50 +20,70 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── CRT scanlines ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 3px,
+        rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
     body {
-      background: #0d1117;
-      color: #e6edf3;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #050a0e;
+      color: #e8f4e8;
+      font-family: 'Press Start 2P', monospace;
       overflow: hidden;
       height: 100dvh;
       user-select: none;
       -webkit-user-select: none;
     }
 
-    #container {
+    #container { position: fixed; inset: 0; }
+    #container canvas { display: block; }
+
+    /* ── CRT edge glow ── */
+    #container::before {
+      content: '';
       position: fixed;
       inset: 0;
+      box-shadow: inset 0 0 80px rgba(0,255,100,0.04), inset 0 0 3px rgba(0,255,100,0.12);
+      pointer-events: none;
+      z-index: 5;
     }
-
-    #container canvas { display: block; }
 
     /* ── info hint ── */
     #info {
       position: fixed;
-      top: 14px;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 20;
-      font-size: 11px;
-      color: #484f58;
+      font-size: 6px;
+      color: #1e4d30;
       pointer-events: none;
       text-align: center;
-      letter-spacing: .3px;
+      letter-spacing: 1px;
+      white-space: nowrap;
     }
 
     /* ── bottom UI panel ── */
     #ui {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       z-index: 20;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 0 16px 18px;
-      gap: 10px;
-      background: linear-gradient(to top, rgba(13,17,23,.97) 75%, transparent);
+      padding: 0 12px 14px;
+      gap: 8px;
+      background: linear-gradient(to top, rgba(5,10,14,0.98) 80%, transparent);
+      border-top: 2px solid #0a2a18;
       pointer-events: none;
     }
 
@@ -72,47 +93,68 @@
     #top-bar {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
       justify-content: center;
-      padding-top: 8px;
+      padding-top: 10px;
     }
 
     .title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #58a6ff;
+      font-size: 13px;
+      color: #00ff66;
       letter-spacing: 3px;
       text-transform: uppercase;
+      text-shadow: 0 0 8px #00ff66, 0 0 20px rgba(0,255,100,0.4), 2px 2px 0 #002200;
+      animation: titleFlicker 5s infinite;
+    }
+
+    @keyframes titleFlicker {
+      0%,94%,100% { opacity: 1; }
+      95% { opacity: 0.8; }
+      97% { opacity: 1; }
+      98% { opacity: 0.85; }
     }
 
     select, button {
-      background: #21262d;
-      border: 1px solid #30363d;
-      color: #e6edf3;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 13px;
+      background: #060e0a;
+      border: 2px solid #144d28;
+      color: #00bb55;
+      padding: 6px 10px;
+      font-size: 7px;
+      font-family: 'Press Start 2P', monospace;
       cursor: pointer;
-      transition: background .12s, border-color .12s;
       outline: none;
+      border-radius: 0;
+      text-transform: uppercase;
+      box-shadow: 3px 3px 0 #001a0d;
+      transition: none;
     }
 
-    select:hover, button:hover { background: #2d333b; border-color: #58a6ff44; }
-    button:active { transform: scale(.95); }
+    select:hover, button:hover {
+      background: #091a10;
+      border-color: #00ff66;
+      color: #00ff66;
+      box-shadow: 3px 3px 0 #003311, 0 0 8px rgba(0,255,100,0.15);
+    }
+
+    button:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 #001a0d;
+    }
 
     #btn-new {
-      background: #1f6feb;
-      border-color: #2f81f7;
-      font-weight: 600;
-      padding: 6px 16px;
+      background: #002a10;
+      border-color: #00ff66;
+      color: #00ff66;
+      padding: 7px 14px;
+      box-shadow: 3px 3px 0 #001a0d, 0 0 10px rgba(0,255,100,0.2);
     }
-    #btn-new:hover { background: #2f81f7; }
+    #btn-new:hover { background: #004020; box-shadow: 3px 3px 0 #002a10, 0 0 16px rgba(0,255,100,0.4); }
 
     /* controls row */
     #ctrls {
       display: flex;
-      gap: 14px;
+      gap: 10px;
       flex-wrap: wrap;
       justify-content: center;
       align-items: center;
@@ -121,168 +163,203 @@
     .grp {
       display: flex;
       align-items: center;
-      gap: 5px;
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
-      padding: 6px 10px;
+      gap: 4px;
+      background: #060e0a;
+      border: 2px solid #0d2e1a;
+      padding: 6px 8px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
     }
 
     .glbl {
-      font-size: 10px;
-      font-weight: 600;
-      color: #6e7681;
+      font-size: 5px;
+      color: #1e5530;
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin-right: 3px;
+      margin-right: 4px;
     }
 
     .axbtn {
-      width: 34px;
-      height: 34px;
-      font-size: 13px;
-      font-weight: 700;
+      width: 32px; height: 32px;
+      font-size: 8px;
       padding: 0;
-      border-radius: 5px;
-      color: #8b949e;
+      color: #1e5530;
+      border-color: #0d2e1a;
+      box-shadow: 2px 2px 0 #001a0d;
     }
     .axbtn.active { color: #fff; }
-    .axbtn.active-x { background: #7a1a1a; border-color: #e05555; }
-    .axbtn.active-y { background: #1a6b22; border-color: #44c45a; }
-    .axbtn.active-z { background: #1f6feb; border-color: #2f81f7; }
-    .axbtn:hover:not(.active) { color: #e6edf3; }
+    .axbtn.active-x {
+      background: #200000; border-color: #ff3333; color: #ff4444;
+      text-shadow: 0 0 8px #ff3333;
+      box-shadow: 2px 2px 0 #2a0000, 0 0 10px rgba(255,40,40,0.3);
+    }
+    .axbtn.active-y {
+      background: #002000; border-color: #33ff33; color: #44ff44;
+      text-shadow: 0 0 8px #33ff33;
+      box-shadow: 2px 2px 0 #002a00, 0 0 10px rgba(40,255,40,0.3);
+    }
+    .axbtn.active-z {
+      background: #000020; border-color: #3366ff; color: #4477ff;
+      text-shadow: 0 0 8px #3366ff;
+      box-shadow: 2px 2px 0 #00002a, 0 0 10px rgba(40,80,255,0.3);
+    }
+    .axbtn:hover:not(.active) { color: #00cc55; border-color: #144d28; }
 
     #slice-lbl {
-      min-width: 42px;
+      min-width: 44px;
       text-align: center;
-      font-size: 14px;
-      font-weight: 700;
-      color: #58a6ff;
+      font-size: 8px;
+      color: #00ff66;
+      text-shadow: 0 0 6px rgba(0,255,100,0.5);
     }
 
     #btn-prev, #btn-next {
-      width: 30px; height: 30px;
-      padding: 0; font-size: 12px;
-      color: #8b949e;
+      width: 28px; height: 28px;
+      padding: 0; font-size: 9px;
+      color: #1e5530;
     }
-    #btn-prev:hover, #btn-next:hover { color: #e6edf3; }
+    #btn-prev:hover, #btn-next:hover { color: #00ff66; }
 
     .nbtn {
-      width: 38px; height: 38px;
-      font-size: 17px;
-      font-weight: 700;
+      width: 36px; height: 36px;
+      font-size: 11px;
       padding: 0;
-      color: #e6edf3;
-      border-radius: 6px;
+      color: #aaffcc;
+      box-shadow: 2px 2px 0 #001a0d;
     }
-    .nbtn:hover { background: #2d333b; border-color: #58a6ff55; }
+    .nbtn:hover { background: #091a10; border-color: #00ff66; color: #00ff66; text-shadow: 0 0 8px #00ff66; }
 
     #btn-clr {
-      width: 38px; height: 38px;
-      padding: 0;
-      font-size: 15px;
-      color: #f85149;
-      border-color: #2d1b1b;
-      border-radius: 6px;
+      width: 36px; height: 36px;
+      padding: 0; font-size: 9px;
+      color: #ff4444;
+      border-color: #300000;
+      box-shadow: 2px 2px 0 #1a0000;
     }
-    #btn-clr:hover { background: #2d1b1b; border-color: #f85149; }
+    #btn-clr:hover { background: #150000; border-color: #ff4444; text-shadow: 0 0 8px #ff4444; }
 
     /* ── loading ── */
     #loading {
       display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(13,17,23,.88);
+      position: fixed; inset: 0;
+      background: rgba(5,10,14,0.92);
       z-index: 100;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      font-size: 15px;
-      color: #58a6ff;
+      align-items: center; justify-content: center;
+      gap: 20px;
+      font-size: 8px;
+      color: #00ff66;
+      text-shadow: 0 0 10px #00ff66;
+      letter-spacing: 2px;
     }
 
     .spin {
-      width: 38px; height: 38px;
-      border: 3px solid #21262d;
-      border-top-color: #58a6ff;
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
+      width: 28px; height: 28px;
+      background: #00ff66;
+      box-shadow: 0 0 16px #00ff66, 0 0 32px rgba(0,255,100,0.3);
+      animation: pixelSpin 0.5s steps(4) infinite;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pixelSpin {
+      0%   { transform: rotate(0deg)   scale(1); }
+      25%  { transform: rotate(90deg)  scale(0.75); }
+      50%  { transform: rotate(180deg) scale(1); }
+      75%  { transform: rotate(270deg) scale(0.75); }
+    }
 
     /* ── win overlay ── */
     #win {
       display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(13,17,23,.80);
+      position: fixed; inset: 0;
+      background: rgba(5,10,14,0.88);
       z-index: 50;
-      align-items: center;
-      justify-content: center;
+      align-items: center; justify-content: center;
     }
 
     #win-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 14px;
-      padding: 44px 52px;
+      background: #050a0e;
+      border: 3px solid #00ff66;
+      padding: 40px 48px;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
-      box-shadow: 0 24px 80px rgba(0,0,0,.6);
+      gap: 14px;
+      box-shadow: 6px 6px 0 #002a10, 0 0 40px rgba(0,255,100,0.25), inset 0 0 20px rgba(0,255,100,0.04);
     }
 
     .win-icon {
-      font-size: 52px;
-      color: #3fb950;
-      line-height: 1;
-      margin-bottom: 4px;
+      font-size: 10px;
+      color: #00ff66;
+      text-shadow: 0 0 12px #00ff66, 0 0 30px rgba(0,255,100,0.4);
+      letter-spacing: 2px;
+      animation: winPulse 0.8s steps(2) infinite;
+    }
+
+    @keyframes winPulse {
+      0%,100% { opacity: 1; text-shadow: 0 0 12px #00ff66, 0 0 30px rgba(0,255,100,0.4); }
+      50%     { opacity: 0.6; text-shadow: 0 0 4px #00ff66; }
     }
 
     #win-card h2 {
-      font-size: 28px;
-      font-weight: 700;
-      color: #e6edf3;
-      letter-spacing: 1px;
+      font-size: 10px;
+      color: #00ff66;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px rgba(0,255,100,0.5);
     }
 
-    #win-card p {
-      color: #8b949e;
-      font-size: 14px;
-    }
+    #win-card p { color: #1e6640; font-size: 7px; letter-spacing: 1px; }
 
     #btn-again {
       margin-top: 8px;
-      background: #1f6feb;
-      border-color: #2f81f7;
-      font-weight: 600;
-      font-size: 15px;
-      padding: 10px 28px;
+      background: #002a10;
+      border-color: #00ff66;
+      color: #00ff66;
+      font-size: 8px;
+      padding: 10px 22px;
+      box-shadow: 4px 4px 0 #001a0d, 0 0 12px rgba(0,255,100,0.25);
     }
-    #btn-again:hover { background: #2f81f7; }
+    #btn-again:hover { background: #003d18; box-shadow: 4px 4px 0 #002a10, 0 0 20px rgba(0,255,100,0.5); }
+
+    /* ── timer ── */
+    #timer {
+      font-size: 10px;
+      color: #00ff66;
+      text-shadow: 0 0 8px rgba(0,255,100,0.6);
+      letter-spacing: 2px;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* ── fx canvas overlay ── */
+    #fx {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
 
     /* ── responsive ── */
     @media (max-width: 500px) {
-      .title { font-size: 15px; }
-      .nbtn, #btn-clr { width: 34px; height: 34px; font-size: 15px; }
-      .axbtn { width: 30px; height: 30px; font-size: 12px; }
-      #win-card { padding: 32px 28px; }
+      .title { font-size: 9px; }
+      .nbtn, #btn-clr { width: 32px; height: 32px; font-size: 9px; }
+      .axbtn { width: 28px; height: 28px; font-size: 7px; }
+      #win-card { padding: 28px 22px; }
+      select, button { font-size: 6px; }
+      #timer { font-size: 8px; }
     }
   </style>
 </head>
 <body>
 
   <div id="container"></div>
+  <canvas id="fx"></canvas>
 
-  <p id="info">Click a cell in the highlighted slice &nbsp;·&nbsp; Type 1–4 &nbsp;·&nbsp; Arrow keys change slice</p>
+  <p id="info">[ click cell ] [ 1-4 ] [ arrows = slice ]</p>
 
   <div id="ui">
     <div id="top-bar">
-      <span class="title">3D Sudoku</span>
+      <span class="title">SUDOKUBE</span>
+      <span id="timer">00:00</span>
       <select id="sel-diff">
         <option value="easy">Easy</option>
         <option value="medium" selected>Medium</option>
@@ -300,9 +377,9 @@
       </div>
       <div class="grp">
         <span class="glbl">Slice</span>
-        <button id="btn-prev">◀</button>
+        <button id="btn-prev">&#9664;</button>
         <span id="slice-lbl">1 / 4</span>
-        <button id="btn-next">▶</button>
+        <button id="btn-next">&#9654;</button>
       </div>
       <div class="grp">
         <span class="glbl">Fill</span>
@@ -310,21 +387,21 @@
         <button class="nbtn" data-n="2">2</button>
         <button class="nbtn" data-n="3">3</button>
         <button class="nbtn" data-n="4">4</button>
-        <button id="btn-clr">✕</button>
+        <button id="btn-clr">DEL</button>
       </div>
     </div>
   </div>
 
   <div id="loading">
     <div class="spin"></div>
-    <span>Generating puzzle…</span>
+    <span>Loading...</span>
   </div>
 
   <div id="win">
     <div id="win-card">
-      <div class="win-icon">✓</div>
+      <div class="win-icon">** WIN **</div>
       <h2>Puzzle Solved!</h2>
-      <p>All 64 cells are correct.</p>
+      <p id="win-time">Time: 00:00</p>
       <button id="btn-again">Play Again</button>
     </div>
   </div>
@@ -468,6 +545,23 @@
     // SECTION 2 · GAME STATE
     // ═══════════════════════════════════════════════════════════
 
+    // ── Timer ──
+    let timerStart = 0, timerInterval = null;
+    function startTimer() {
+      timerStart = Date.now();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(updateTimerDisplay, 500);
+      updateTimerDisplay();
+    }
+    function stopTimer() { clearInterval(timerInterval); timerInterval = null; }
+    function formatTime(ms) {
+      const s = Math.floor(ms / 1000);
+      return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+    }
+    function updateTimerDisplay() {
+      document.getElementById('timer').textContent = formatTime(Date.now() - timerStart);
+    }
+
     const S = {
       sol:    null,   // [4][4][4] complete solution
       clues:  null,   // [4][4][4] bool  – immutable given cells
@@ -497,9 +591,12 @@
               S.player[x][y][z] = p[x][y][z];
             }
 
+      celebratedGroups.clear();
+      conflictsDirty = true;
       setAxis('z');
       redraw();
       syncUI();
+      startTimer();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -530,24 +627,46 @@
     const rc     = new THREE.Raycaster();
     const pt     = new THREE.Vector2();
 
-    const ISO_VIEW_SIZE = 4.2; // orthographic half-height in world units
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    /**
+     * Compute orthographic half-height so the full cube is always visible.
+     * Cube isometric vertical half-extent ≈ 3.1 world units.
+     * On portrait the horizontal axis is the bottleneck.
+     */
+    function computeViewSize() {
+      const a = innerWidth / innerHeight;
+      const forHoriz = 2.8 / Math.min(a, 1.0);
+      return Math.max(forHoriz, 3.8);
+    }
+
+    /**
+     * Shift the frustum UP so the cube sits above the bottom toolbar.
+     * uiEl height in px → convert to world units.
+     */
+    function computeVShift(s) {
+      const uiH = document.getElementById('ui').getBoundingClientRect().height || 110;
+      // fraction of canvas taken by the toolbar
+      const frac = uiH / innerHeight;
+      // shift the frustum centre up by half that fraction (in world units)
+      return frac * s;
+    }
 
     function initThree() {
       const con = document.getElementById('container');
 
-      // WebGL renderer
-      rndr = new THREE.WebGLRenderer({ antialias: true });
-      rndr.setPixelRatio(Math.min(devicePixelRatio, 2));
+      rndr = new THREE.WebGLRenderer({ antialias: !isMobile });
+      rndr.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.5 : 2));
       rndr.setSize(innerWidth, innerHeight);
-      rndr.setClearColor(0x0d1117);
+      rndr.setClearColor(0x050a0e);
       con.appendChild(rndr.domElement);
 
       scene = new THREE.Scene();
 
-      // Orthographic camera at classic isometric position (equal distance on all axes)
       const a = innerWidth / innerHeight;
-      const s = ISO_VIEW_SIZE;
-      cam = new THREE.OrthographicCamera(-a * s, a * s, s, -s, -50, 50);
+      const s = computeViewSize();
+      const vs = computeVShift(s);
+      cam = new THREE.OrthographicCamera(-a * s, a * s, s + vs, -s + vs, -50, 50);
       cam.position.set(7, 7, 7);
       cam.lookAt(0, 0, 0);
 
@@ -601,7 +720,7 @@
             const pGeo = new THREE.PlaneGeometry(CS * 0.82, CS * 0.82);
             faceData[k] = FACE_DEFS.map(({ pos, rot }) => {
               const canvas = document.createElement('canvas');
-              canvas.width = canvas.height = 256;
+              canvas.width = canvas.height = 128; // 4× fewer pixels than 256
               const ctx = canvas.getContext('2d');
               const tex = new THREE.CanvasTexture(canvas);
               const mat = new THREE.MeshBasicMaterial({
@@ -626,7 +745,6 @@
       con.addEventListener('pointerdown', onClick);
       document.addEventListener('keydown', onKey);
       window.addEventListener('resize', onResize);
-      con.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
     }
 
     // Stores the 3×4 sets of block-frame lines: blockFrames[axis][slice][blockIdx]
@@ -676,13 +794,28 @@
     // SECTION 4 · VISUALS
     // ═══════════════════════════════════════════════════════════
 
+    // Dirty render flag — only submit a GPU frame when something changed
+    let needsRender = true;
+
+    // Cached conflict set — recomputed only when the player grid changes
+    let conflictsCache = new Set();
+    let conflictsDirty = true;
+
+    function getConflictsCached() {
+      if (conflictsDirty) {
+        conflictsCache = getConflicts(S.player);
+        conflictsDirty = false;
+      }
+      return conflictsCache;
+    }
+
     function inSlice(x, y, z) {
       return (S.axis === 'x' && x === S.slice) ||
              (S.axis === 'y' && y === S.slice) ||
              (S.axis === 'z' && z === S.slice);
     }
 
-    const CANVAS_W = 256;
+    const CANVAS_W = 128;
 
     /** Draw a number on a face canvas. Pass num=0 to clear. */
     function drawFace(ctx, tex, num, color, glowColor) {
@@ -710,8 +843,22 @@
 
     function redraw() {
       if (!S.player) return;
-      const bad = getConflicts(S.player);
+      const bad = getConflictsCached();
       const ac  = AXIS_CLR[S.axis];
+      needsRender = true;
+
+      // ── Orthogonal preview: cells along the axis-line through the selected cell ──
+      const previewKeys = new Set();
+      if (S.sel) {
+        const { x: sx, y: sy, z: sz } = S.sel;
+        for (let i = 0; i < 4; i++) {
+          if (S.axis === 'z') previewKeys.add(`${sx},${sy},${i}`);
+          else if (S.axis === 'x') previewKeys.add(`${i},${sy},${sz}`);
+          else                     previewKeys.add(`${sx},${i},${sz}`);
+        }
+        // Remove the active-slice cell itself (already shown normally)
+        previewKeys.delete(`${sx},${sy},${sz}`);
+      }
 
       // ── Block frame visibility ──
       ['x','y','z'].forEach(axis => {
@@ -727,16 +874,17 @@
       for (let x = 0; x < 4; x++)
         for (let y = 0; y < 4; y++)
           for (let z = 0; z < 4; z++) {
-            const k    = `${x},${y},${z}`;
-            const mat  = meshes[k].material;
-            const eMat = eLines[k].material;
-            const v    = S.player[x][y][z];
-            const act  = inSlice(x, y, z);
-            const sel  = S.sel && S.sel.x === x && S.sel.y === y && S.sel.z === z;
-            const clue = S.clues[x][y][z];
-            const err  = bad.has(k);
+            const k       = `${x},${y},${z}`;
+            const mat     = meshes[k].material;
+            const eMat    = eLines[k].material;
+            const v       = S.player[x][y][z];
+            const act     = inSlice(x, y, z);
+            const sel     = S.sel && S.sel.x === x && S.sel.y === y && S.sel.z === z;
+            const clue    = S.clues[x][y][z];
+            const err     = bad.has(k);
+            const preview = previewKeys.has(k);
 
-            // ── Cell face colour (axis-tinted) ──
+            // ── Cell face colour ──
             if (sel) {
               mat.color.setHex(0x00ccaa); mat.opacity = 1.0;
             } else if (act && err) {
@@ -745,30 +893,31 @@
               mat.color.setHex(ac.clueFace); mat.opacity = 1.0;
             } else if (act) {
               mat.color.setHex(ac.face); mat.opacity = 1.0;
+            } else if (preview) {
+              mat.color.setHex(0x1a2a1a); mat.opacity = 0.35;
             } else {
               mat.color.setHex(0x252a36); mat.opacity = 0.06;
             }
 
-            // ── Edge colour (axis-tinted) ──
+            // ── Edge colour ──
             if (act) {
               eMat.color.setHex(ac.edge); eMat.opacity = 0.75;
+            } else if (preview) {
+              eMat.color.setHex(0x2a6040); eMat.opacity = 0.5;
             } else {
               eMat.color.setHex(0x253646); eMat.opacity = 0.22;
             }
 
             // ── Dice-face numbers ──
-            // Active slice → full opacity with appropriate color/glow
-            // Inactive      → faint (0.14) so context is still readable
-            const color = err   ? '#f87171'
-                        : clue  ? '#93c5fd'
-                                : '#ffd060';
-            const glow  = err   ? '#f8717166'
-                        : clue  ? null
-                                : '#ffd06055';
+            const color = err  ? '#f87171' : clue ? '#93c5fd' : '#ffd060';
+            const glow  = err  ? '#f8717166' : clue ? null : '#ffd06055';
             faceData[k].forEach(({ mat: fm, ctx, tex }) => {
               if (v > 0 && act) {
                 fm.opacity = 1.0;
                 drawFace(ctx, tex, v, color, glow);
+              } else if (v > 0 && preview) {
+                fm.opacity = 0.38;
+                drawFace(ctx, tex, v, '#66aa88', null);
               } else {
                 fm.opacity = 0;
                 drawFace(ctx, tex, 0, '', null);
@@ -777,11 +926,11 @@
           }
     }
 
-    /** Switch active axis — cube stays fixed in isometric position */
+    /** Switch active axis. If a cell is selected, jump to its slice on the new axis (feature 3). */
     function setAxis(axis) {
       S.axis  = axis;
-      S.slice = 0;
-      S.sel   = null;
+      S.slice = S.sel ? S.sel[axis] : 0;
+      // keep selection so the orthogonal preview updates for the new axis
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -814,9 +963,11 @@
     function fill(n) {
       if (!S.sel || S.solved) return;
       const { x, y, z } = S.sel;
-      if (S.clues[x][y][z]) return; // given cell — immutable
+      if (S.clues[x][y][z]) return;
       S.player[x][y][z] = n;
+      conflictsDirty = true;
       redraw();
+      checkCompletions(x, y, z);
       checkWin();
     }
 
@@ -825,18 +976,127 @@
       const { x, y, z } = S.sel;
       if (S.clues[x][y][z]) return;
       S.player[x][y][z] = 0;
+      conflictsDirty = true;
       redraw();
     }
 
     function checkWin() {
-      // All 64 cells must be filled with no conflicts
       for (let x = 0; x < 4; x++)
         for (let y = 0; y < 4; y++)
           for (let z = 0; z < 4; z++)
             if (!S.player[x][y][z]) return;
       if (getConflicts(S.player).size > 0) return;
       S.solved = true;
-      setTimeout(() => { document.getElementById('win').style.display = 'flex'; }, 350);
+      stopTimer();
+      const elapsed = formatTime(Date.now() - timerStart);
+      document.getElementById('win-time').textContent = `Time: ${elapsed}`;
+      burstAll();
+      setTimeout(() => { document.getElementById('win').style.display = 'flex'; }, 1200);
+    }
+
+    /** Check if any new lines/columns/axes/boxes/slices just completed and fire particles */
+    function checkCompletions(x, y, z) {
+      const bad = getConflicts(S.player);
+
+      function groupComplete(cells) {
+        return cells.every(([cx,cy,cz]) => S.player[cx][cy][cz] > 0 && !bad.has(`${cx},${cy},${cz}`));
+      }
+
+      // Build list of group keys + world-space centre positions to celebrate
+      const toFire = [];
+
+      // X-lines (y,z fixed)
+      {
+        const key = `xl_${y}_${z}`;
+        if (!celebratedGroups.has(key) && groupComplete([[0,y,z],[1,y,z],[2,y,z],[3,y,z]])) {
+          celebratedGroups.add(key);
+          toFire.push(worldCentre([0,y,z],[3,y,z]));
+        }
+      }
+      // Y-lines (x,z fixed)
+      {
+        const key = `yl_${x}_${z}`;
+        if (!celebratedGroups.has(key) && groupComplete([[x,0,z],[x,1,z],[x,2,z],[x,3,z]])) {
+          celebratedGroups.add(key);
+          toFire.push(worldCentre([x,0,z],[x,3,z]));
+        }
+      }
+      // Z-lines (x,y fixed)
+      {
+        const key = `zl_${x}_${y}`;
+        if (!celebratedGroups.has(key) && groupComplete([[x,y,0],[x,y,1],[x,y,2],[x,y,3]])) {
+          celebratedGroups.add(key);
+          toFire.push(worldCentre([x,y,0],[x,y,3]));
+        }
+      }
+      // Z-slice (all 16 cells at z)
+      {
+        const cells = []; for(let a=0;a<4;a++) for(let b=0;b<4;b++) cells.push([a,b,z]);
+        const key = `zs_${z}`;
+        if (!celebratedGroups.has(key) && groupComplete(cells)) {
+          celebratedGroups.add(key);
+          toFire.push(worldCentre([0,0,z],[3,3,z]));
+        }
+      }
+      // X-slice
+      {
+        const cells = []; for(let b=0;b<4;b++) for(let c=0;c<4;c++) cells.push([x,b,c]);
+        const key = `xs_${x}`;
+        if (!celebratedGroups.has(key) && groupComplete(cells)) {
+          celebratedGroups.add(key);
+          toFire.push(worldCentre([x,0,0],[x,3,3]));
+        }
+      }
+      // Y-slice
+      {
+        const cells = []; for(let a=0;a<4;a++) for(let c=0;c<4;c++) cells.push([a,y,c]);
+        const key = `ys_${y}`;
+        if (!celebratedGroups.has(key) && groupComplete(cells)) {
+          celebratedGroups.add(key);
+          toFire.push(worldCentre([0,y,0],[3,y,3]));
+        }
+      }
+      // 2x2 boxes on each plane
+      const bx = (x>>1)<<1, by = (y>>1)<<1, bz = (z>>1)<<1;
+      // XY box at fixed z
+      {
+        const cells = [[bx,by,z],[bx+1,by,z],[bx,by+1,z],[bx+1,by+1,z]];
+        const key = `bxy_${bx}_${by}_${z}`;
+        if (!celebratedGroups.has(key) && groupComplete(cells)) {
+          celebratedGroups.add(key);
+          toFire.push(worldCentre([bx,by,z],[bx+1,by+1,z]));
+        }
+      }
+      // XZ box at fixed y
+      {
+        const cells = [[bx,y,bz],[bx+1,y,bz],[bx,y,bz+1],[bx+1,y,bz+1]];
+        const key = `bxz_${bx}_${y}_${bz}`;
+        if (!celebratedGroups.has(key) && groupComplete(cells)) {
+          celebratedGroups.add(key);
+          toFire.push(worldCentre([bx,y,bz],[bx+1,y,bz+1]));
+        }
+      }
+      // YZ box at fixed x
+      {
+        const cells = [[x,by,bz],[x,by+1,bz],[x,by,bz+1],[x,by+1,bz+1]];
+        const key = `byz_${x}_${by}_${bz}`;
+        if (!celebratedGroups.has(key) && groupComplete(cells)) {
+          celebratedGroups.add(key);
+          toFire.push(worldCentre([x,by,bz],[x,by+1,bz+1]));
+        }
+      }
+
+      toFire.forEach(([wx, wy]) => spawnStars(wx, wy));
+    }
+
+    /** World-space centre of two 3D grid cells, projected to screen XY */
+    function worldCentre([ax,ay,az],[bx,by,bz]) {
+      const wx = (bp(ax)+bp(bx))/2, wy = (bp(ay)+bp(by))/2, wz = (bp(az)+bp(bz))/2;
+      const v = new THREE.Vector3(wx, wy, wz);
+      v.project(cam);
+      const sx = (v.x * 0.5 + 0.5) * innerWidth;
+      const sy = (-v.y * 0.5 + 0.5) * innerHeight;
+      return [sx, sy];
     }
 
     function chSlice(d) {
@@ -878,14 +1138,17 @@
     }
 
     function onResize() {
-      const a = innerWidth / innerHeight;
-      const s = ISO_VIEW_SIZE;
+      const a  = innerWidth / innerHeight;
+      const s  = computeViewSize();
+      const vs = computeVShift(s);
       cam.left   = -a * s;
       cam.right  =  a * s;
-      cam.top    =  s;
-      cam.bottom = -s;
+      cam.top    =  s + vs;
+      cam.bottom = -s + vs;
       cam.updateProjectionMatrix();
       rndr.setSize(innerWidth, innerHeight);
+      resizeFx();
+      needsRender = true;
     }
 
     function showLoading(v) {
@@ -893,15 +1156,97 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SECTION 7 · ANIMATION LOOP + INIT
+    // SECTION 7 · PARTICLE FX
+    // ═══════════════════════════════════════════════════════════
+
+    const celebratedGroups = new Set();
+
+    // Pixel-art star particles rendered on a 2D canvas overlay (#fx)
+    const fxCanvas = document.getElementById('fx');
+    const fxCtx    = fxCanvas.getContext('2d');
+    let   particles = [];
+
+    function resizeFx() {
+      fxCanvas.width  = innerWidth;
+      fxCanvas.height = innerHeight;
+    }
+
+    // Retro pixel palette
+    const STAR_COLORS = ['#00ff66','#ffff00','#ff66aa','#66ffff','#ff9900','#ffffff'];
+
+    function spawnStars(cx, cy) {
+      const count = isMobile ? 12 : 22;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+        const speed = 1.5 + Math.random() * 2.5;
+        particles.push({
+          x: cx, y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.5, // slight upward bias
+          life: 1.0,
+          decay: 0.018 + Math.random() * 0.012,
+          size: (Math.random() < 0.5 ? 3 : 5), // pixel sizes: 3 or 5
+          color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
+          // pixel star shape: 0=square, 1=plus cross
+          shape: Math.random() < 0.4 ? 1 : 0,
+        });
+      }
+    }
+
+    function burstAll() {
+      for (let x = 0; x < 4; x++)
+        for (let y = 0; y < 4; y++)
+          for (let z = 0; z < 4; z++) {
+            const [sx, sy] = worldCentre([x,y,z],[x,y,z]);
+            setTimeout(() => spawnStars(sx, sy), Math.random() * 600);
+          }
+    }
+
+    function drawPixelStar(ctx, x, y, size, color, shape) {
+      ctx.fillStyle = color;
+      const px = Math.round(x), py = Math.round(y);
+      if (shape === 0) {
+        // solid pixel square
+        ctx.fillRect(px - size/2, py - size/2, size, size);
+      } else {
+        // plus / cross
+        ctx.fillRect(px - size/2, py - 1, size, 2);
+        ctx.fillRect(px - 1, py - size/2, 2, size);
+      }
+    }
+
+    function tickParticles() {
+      if (particles.length === 0) return;
+      fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+      particles = particles.filter(p => p.life > 0);
+      for (const p of particles) {
+        fxCtx.globalAlpha = Math.max(0, p.life);
+        drawPixelStar(fxCtx, p.x, p.y, p.size, p.color, p.shape);
+        p.x    += p.vx;
+        p.y    += p.vy;
+        p.vy   += 0.08;
+        p.life -= p.decay;
+      }
+      fxCtx.globalAlpha = 1;
+      if (particles.length === 0) fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+      needsRender = true;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SECTION 8 · ANIMATION LOOP + INIT
     // ═══════════════════════════════════════════════════════════
 
     function loop() {
       requestAnimationFrame(loop);
-      rndr.render(scene, cam);
+      tickParticles();
+      if (needsRender) {
+        rndr.render(scene, cam);
+        needsRender = false;
+      }
     }
 
     function init() {
+      resizeFx();
       initThree();
 
       // Axis buttons
