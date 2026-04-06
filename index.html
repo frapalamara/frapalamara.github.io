@@ -300,14 +300,18 @@
       50%     { opacity: 0.6; text-shadow: 0 0 4px #00ff66; }
     }
 
-    #win-card h2 {
-      font-size: 10px;
+    #win-time {
+      font-size: 26px;
       color: #00ff66;
-      letter-spacing: 2px;
-      text-shadow: 0 0 8px rgba(0,255,100,0.5);
+      text-shadow: 0 0 14px #00ff66, 0 0 40px rgba(0,255,100,0.5);
+      letter-spacing: 4px;
     }
 
-    #win-card p { color: #1e6640; font-size: 7px; letter-spacing: 1px; }
+    #win-diff-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     #btn-again {
       margin-top: 8px;
@@ -389,6 +393,10 @@
         <button class="nbtn" data-n="4">4</button>
         <button id="btn-clr">DEL</button>
       </div>
+      <div class="grp">
+        <span class="glbl">Preview</span>
+        <button id="btn-preview" class="axbtn active active-z">ON</button>
+      </div>
     </div>
   </div>
 
@@ -400,8 +408,15 @@
   <div id="win">
     <div id="win-card">
       <div class="win-icon">** WIN **</div>
-      <h2>Puzzle Solved!</h2>
-      <p id="win-time">Time: 00:00</p>
+      <div id="win-time">00:00</div>
+      <div id="win-diff-row">
+        <span class="glbl">Difficulty</span>
+        <select id="win-diff">
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
       <button id="btn-again">Play Again</button>
     </div>
   </div>
@@ -569,8 +584,9 @@
       axis:   'z',    // 'x' | 'y' | 'z'
       slice:  0,      // 0-3
       sel:    null,   // {x,y,z} | null
-      diff:   'medium',
-      solved: false
+      diff:        'medium',
+      solved:      false,
+      showPreview: true
     };
 
     function newGame() {
@@ -636,8 +652,8 @@
      */
     function computeViewSize() {
       const a = innerWidth / innerHeight;
-      const forHoriz = 2.8 / Math.min(a, 1.0);
-      return Math.max(forHoriz, 3.8);
+      const forHoriz = 3.5 / Math.min(a, 1.0);
+      return Math.max(forHoriz, 4.75);
     }
 
     /**
@@ -646,10 +662,11 @@
      */
     function computeVShift(s) {
       const uiH = document.getElementById('ui').getBoundingClientRect().height || 110;
-      // fraction of canvas taken by the toolbar
-      const frac = uiH / innerHeight;
-      // shift the frustum centre up by half that fraction (in world units)
-      return frac * s;
+      // In Three.js ortho, world Y=0 maps to screen_y = (top / 2s) * innerHeight.
+      // To place the cube at the centre of the visible area (above the toolbar):
+      //   target screen_y = (innerHeight - uiH) / 2
+      // Solving: vs = -s * uiH / innerHeight  (negative = shift frustum down → cube moves up on screen)
+      return -s * uiH / innerHeight;
     }
 
     function initThree() {
@@ -821,7 +838,7 @@
     function drawFace(ctx, tex, num, color, glowColor) {
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_W);
       if (num > 0) {
-        ctx.font = `bold ${CANVAS_W * 0.72}px "Courier New", monospace`;
+        ctx.font = `${CANVAS_W * 0.52}px "Press Start 2P", monospace`;
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
         // drop shadow for depth
@@ -849,7 +866,7 @@
 
       // ── Orthogonal preview: cells along the axis-line through the selected cell ──
       const previewKeys = new Set();
-      if (S.sel) {
+      if (S.sel && S.showPreview) {
         const { x: sx, y: sy, z: sz } = S.sel;
         for (let i = 0; i < 4; i++) {
           if (S.axis === 'z') previewKeys.add(`${sx},${sy},${i}`);
@@ -989,7 +1006,9 @@
       S.solved = true;
       stopTimer();
       const elapsed = formatTime(Date.now() - timerStart);
-      document.getElementById('win-time').textContent = `Time: ${elapsed}`;
+      document.getElementById('win-time').textContent = elapsed;
+      // sync win-screen diff selector to current difficulty
+      document.getElementById('win-diff').value = S.diff;
       burstAll();
       setTimeout(() => { document.getElementById('win').style.display = 'flex'; }, 1200);
     }
@@ -1272,14 +1291,33 @@
         setTimeout(() => { newGame(); showLoading(false); }, 60);
       });
 
-      document.getElementById('btn-again').addEventListener('click', () =>
-        document.getElementById('btn-new').click());
+      document.getElementById('btn-again').addEventListener('click', () => {
+        // pick difficulty from the win-screen selector, then start a new game
+        const winDiff = document.getElementById('win-diff').value;
+        document.getElementById('sel-diff').value = winDiff;
+        S.diff = winDiff;
+        document.getElementById('win').style.display = 'none';
+        showLoading(true);
+        setTimeout(() => { newGame(); showLoading(false); }, 60);
+      });
+
+      // Preview toggle
+      const btnPreview = document.getElementById('btn-preview');
+      btnPreview.addEventListener('click', () => {
+        S.showPreview = !S.showPreview;
+        btnPreview.textContent = S.showPreview ? 'ON' : 'OFF';
+        btnPreview.classList.toggle('active',   S.showPreview);
+        btnPreview.classList.toggle('active-z', S.showPreview);
+        redraw();
+      });
 
       loop();
 
-      // First puzzle
+      // First puzzle — wait for Press Start 2P to load so canvas text renders correctly
       showLoading(true);
-      setTimeout(() => { newGame(); showLoading(false); }, 60);
+      document.fonts.load('12px "Press Start 2P"').finally(() => {
+        setTimeout(() => { newGame(); showLoading(false); }, 30);
+      });
     }
 
     init();
