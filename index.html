@@ -4,23 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>SUDOKUBE</title>
+  
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-5DLKYSHYSG"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-  
     gtag('config', 'G-5DLKYSHYSG');
   </script>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8335884863674458"
-     crossorigin="anonymous"></script>
+  
+  <!-- AdSense Library -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8335884863674458" crossorigin="anonymous"></script>
   <script>
     // H5 Games Ad API shim — enables programmatic vignette ad breaks
     window.adBreak = window.adConfig = function(o) {
       (window.adsbygoogle = window.adsbygoogle || []).push(o);
     };
   </script>
+
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -374,13 +376,35 @@
       #slice-lbl { min-width: 36px; font-size: 7px; }
       #btn-prev, #btn-next { width: 24px; height: 24px; }
     }
+
+    /* ── lateral banner ads (desktop only) ── */
+    #ad-left, #ad-right {
+      display: none;
+      position: fixed;
+      top: 0; bottom: 0;
+      width: 160px;
+      z-index: 30;
+      background: #050a0e;
+      align-items: center;
+      justify-content: center;
+      pointer-events: all;
+    }
+    #ad-left  { left: 0; }
+    #ad-right { right: 0; }
+    @media (min-width: 960px) {
+      #ad-left, #ad-right { display: flex; }
+    }
   </style>
 </head>
 <body>
-    <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W38BGS3B"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W38BGS3B"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+  <!-- Ad Containers (Left empty on mobile to prevent AdSense errors) -->
+  <div id="ad-left"></div>
+  <div id="ad-right"></div>
 
   <div id="container"></div>
   <canvas id="fx"></canvas>
@@ -669,8 +693,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
+    function getAdWidth() {
+      return innerWidth >= 960 ? 160 : 0;
+    }
+
     function computeViewSize() {
-      const a = innerWidth / innerHeight;
+      const adW = getAdWidth();
+      const a = (innerWidth - 2 * adW) / innerHeight;
       const base = isMobile ? 4.2 : 5.5;
       const forHoriz = base / Math.min(a, 1.0);
       return Math.max(forHoriz, 6.5);
@@ -682,7 +711,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
 
     function computeCubeScale(s) {
-      const a    = innerWidth / innerHeight;
+      const adW  = getAdWidth();
+      const a    = (innerWidth - 2 * adW) / innerHeight;
       const uiH  = document.getElementById('ui').getBoundingClientRect().height || 110;
       const D    = (8 * SP + 2 * BLOCK_GAP + CS) / 2;  // world half-span of the cube
       const projHalfW = D * Math.SQRT2;                 // isometric horizontal half-extent
@@ -1379,6 +1409,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
 
       loop();
+
+      // Inject lateral banner ads only on desktop to prevent AdSense policy violations
+      // for empty <ins> tags or hidden fixed-size ads on mobile devices.
+      if (window.innerWidth >= 960) {
+        document.getElementById('ad-left').innerHTML = 
+          '<ins class="adsbygoogle" style="display:inline-block;width:160px;height:600px" data-ad-client="ca-pub-8335884863674458" data-ad-slot="YOUR_LEFT_SLOT_ID"></ins>';
+        document.getElementById('ad-right').innerHTML = 
+          '<ins class="adsbygoogle" style="display:inline-block;width:160px;height:600px" data-ad-client="ca-pub-8335884863674458" data-ad-slot="YOUR_RIGHT_SLOT_ID"></ins>';
+        
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      }
 
       // First puzzle — wait for Press Start 2P to load so canvas text renders correctly
       document.fonts.load('12px "Press Start 2P"').finally(() => {
