@@ -15,6 +15,12 @@
   </script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8335884863674458"
      crossorigin="anonymous"></script>
+  <script>
+    // H5 Games Ad API shim — enables programmatic vignette ad breaks
+    window.adBreak = window.adConfig = function(o) {
+      (window.adsbygoogle = window.adsbygoogle || []).push(o);
+    };
+  </script>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -623,8 +629,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         setAxis('z');
         redraw();
         syncUI();
-        startTimer();
         showLoading(false);
+        adBreak({
+          type: 'browse',
+          name: 'new_game',
+          adBreakDone: () => startTimer()
+        });
       });
     }
 
