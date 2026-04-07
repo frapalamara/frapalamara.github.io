@@ -356,11 +356,17 @@
     /* ── responsive ── */
     @media (max-width: 500px) {
       .title { font-size: 9px; }
-      .nbtn, #btn-clr { width: 26px; height: 26px; font-size: 8px; }
-      .axbtn { width: 28px; height: 28px; font-size: 7px; }
+      .nbtn, #btn-clr { width: 24px; height: 24px; font-size: 7px; }
+      .axbtn { width: 25px; height: 25px; font-size: 6px; }
       #win-card { padding: 28px 22px; }
-      select, button { font-size: 6px; }
-      #timer { font-size: 8px; }
+      select, button { font-size: 6px; padding: 4px 7px; }
+      #timer { font-size: 8px; min-width: 48px; }
+      #ui { padding: 0 8px 6px; gap: 4px; }
+      #top-bar { padding-top: 5px; gap: 8px; }
+      .grp { padding: 4px 5px; gap: 2px; }
+      .glbl { display: none; }
+      #slice-lbl { min-width: 36px; font-size: 7px; }
+      #btn-prev, #btn-next { width: 24px; height: 24px; }
     }
   </style>
 </head>
@@ -414,8 +420,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <button id="btn-clr">DEL</button>
       </div>
       <div class="grp">
-        <span class="glbl">Preview</span>
-        <button id="btn-preview" class="axbtn active active-z">ON</button>
+        <span class="glbl">X-Ray</span>
+        <button id="btn-preview" class="axbtn">OFF</button>
       </div>
     </div>
   </div>
@@ -591,7 +597,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       sel:    null,   // {x,y,z} | null
       diff:        'medium',
       solved:      false,
-      showPreview: true
+      showPreview: false
     };
 
     function newGame() {
@@ -626,17 +632,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // SECTION 3 · THREE.JS SCENE
     // ═══════════════════════════════════════════════════════════
 
-    // Per-axis color palettes  (face, clue-face, edge hex)
+    // Per-axis color palettes  (face, edge, rowcol highlight hex)
     const AXIS_CLR = {
-      x: { face: 0x8b1a1a, clueFace: 0x6b1010, edge: 0xe05555 },
-      y: { face: 0x1a6b22, clueFace: 0x0f4a18, edge: 0x44c45a },
-      z: { face: 0x1d5fa0, clueFace: 0x1a4a88, edge: 0x4488cc },
+      x: { face: 0x8b1a1a, edge: 0xe05555, rowcol: 0x4d1515 },
+      y: { face: 0x1a6b22, edge: 0x44c45a, rowcol: 0x104518 },
+      z: { face: 0x1d5fa0, edge: 0x4488cc, rowcol: 0x143060 },
     };
     const AXIS_CSS = { x: '#e05555', y: '#44c45a', z: '#4488cc' };
 
-    const SP        = 0.55;   // centre-to-centre spacing within a 3×3 band
-    const CS        = 0.48;   // cube side length
-    const BLOCK_GAP = 0.18;   // extra gap between 3×3 bands
+    const SP        = 0.7;   // centre-to-centre spacing within a 3×3 band
+    const CS        = 0.6;   // cube side length
+    const BLOCK_GAP = 0.1;   // extra gap between 3×3 bands
 
     /** Position on one axis: 9 cells in 3 bands of 3, with BLOCK_GAP between bands */
     function bp(i) {
@@ -644,7 +650,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
 
     // Added bgScene to handle the background structure
-    let rndr, scene, bgScene, cam, pivot;
+    let rndr, scene, bgScene, cam, pivot, bgGroup;
     const meshes   = {}; // key → THREE.Mesh (cell face)
     const eLines   = {}; // key → THREE.LineSegments (cell edges)
     const faceData = {}; // key → [{mat, ctx, tex}, …] for +Z, +X, +Y faces
@@ -655,13 +661,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     function computeViewSize() {
       const a = innerWidth / innerHeight;
-      const forHoriz = 5.5 / Math.min(a, 1.0);
+      const base = isMobile ? 4.2 : 5.5;
+      const forHoriz = base / Math.min(a, 1.0);
       return Math.max(forHoriz, 6.5);
     }
 
     function computeVShift(s) {
       const uiH = document.getElementById('ui').getBoundingClientRect().height || 110;
       return -s * uiH / innerHeight;
+    }
+
+    function computeCubeScale(s) {
+      const a    = innerWidth / innerHeight;
+      const uiH  = document.getElementById('ui').getBoundingClientRect().height || 110;
+      const D    = (8 * SP + 2 * BLOCK_GAP + CS) / 2;  // world half-span of the cube
+      const projHalfW = D * Math.SQRT2;                 // isometric horizontal half-extent
+      const projHalfH = 4 * D / Math.sqrt(6);           // isometric vertical half-extent
+      const FILL = 0.88;
+      const availVFrac = 1 - uiH / innerHeight;
+      return Math.min(
+        a * s * FILL / projHalfW,
+        s * availVFrac * FILL / projHalfH
+      );
+    }
+
+    function applyCubeScale() {
+      const sc = computeCubeScale(computeViewSize());
+      pivot.scale.setScalar(sc);
+      bgGroup.scale.setScalar(sc);
+      needsRender = true;
     }
 
     function initThree() {
@@ -687,7 +715,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       scene.add(pivot);
 
       // ── Background Cube Outline ──
-      const bgGroup = new THREE.Group();
+      bgGroup = new THREE.Group();
       // Size perfectly wrapping one 3x3x3 block
       const bSize = 2 * SP + CS;
       const bgGeo = new THREE.BoxGeometry(bSize, bSize, bSize);
@@ -736,11 +764,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               eGeo,
               new THREE.LineBasicMaterial({
                 color:       0x253646,
-                transparent: true,
-                opacity:     0
+                transparent: false,
+                opacity:     1.0
               })
             );
             el.position.copy(pos);
+            el.scale.setScalar(1.03); // slightly larger than face mesh to avoid z-fighting
             el.visible = false;
             pivot.add(el);
             eLines[k] = el;
@@ -771,6 +800,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           }
 
       buildBlockFrames();
+      applyCubeScale();
 
       con.addEventListener('pointerdown', onClick);
       document.addEventListener('keydown', onKey);
@@ -866,6 +896,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const ac  = AXIS_CLR[S.axis];
       needsRender = true;
 
+      // ── Row/column highlight ──
+      const highlightKeys = new Set();
+      if (S.sel) {
+        const { x: sx, y: sy, z: sz } = S.sel;
+        for (let i = 0; i < 9; i++) {
+          if      (S.axis === 'z') { highlightKeys.add(`${i},${sy},${S.slice}`); highlightKeys.add(`${sx},${i},${S.slice}`); }
+          else if (S.axis === 'x') { highlightKeys.add(`${S.slice},${sy},${i}`); highlightKeys.add(`${S.slice},${i},${sz}`); }
+          else                     { highlightKeys.add(`${sx},${S.slice},${i}`); highlightKeys.add(`${i},${S.slice},${sz}`); }
+        }
+        highlightKeys.delete(`${sx},${sy},${sz}`);
+      }
+
       // ── Orthogonal preview ──
       const previewKeys = new Set();
       if (S.sel && S.showPreview) {
@@ -902,6 +944,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             const clue    = S.clues[x][y][z];
             const err     = bad.has(k);
             const preview = previewKeys.has(k);
+            const hl      = highlightKeys.has(k);
 
             if (!act && !sel && !preview) {
               mesh.visible = false;
@@ -923,8 +966,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             } else if (act && err) {
               mat.color.setHex(0xcc2222);
               mat.transparent = false; mat.opacity = 1;
-            } else if (act && clue) {
-              mat.color.setHex(ac.clueFace);
+            } else if (act && hl) {
+              mat.color.setHex(ac.rowcol);
               mat.transparent = false; mat.opacity = 1;
             } else if (act) {
               mat.color.setHex(ac.face);
@@ -935,7 +978,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               mat.transparent = true; mat.opacity = 0.5;
             }
 
-            eMat.color.setHex(ac.edge); eMat.opacity = 0.75;
+            eMat.color.setHex(ac.edge); eMat.transparent = false; eMat.opacity = 1.0;
 
             const color = err ? '#f87171' : clue ? '#93c5fd' : '#ffd060';
             const glow  = err ? '#f8717166' : clue ? null : '#ffd06055';
@@ -1125,7 +1168,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     function worldCentre([ax,ay,az],[bx,by,bz]) {
       // <-- Inverted visual Z logic added to fireworks
-      const wx = (bp(ax)+bp(bx))/2, wy = (bp(ay)+bp(by))/2, wz = (bp(8 - az)+bp(8 - bz))/2; 
+      const sc = pivot.scale.x;
+      const wx = (bp(ax)+bp(bx))/2*sc, wy = (bp(ay)+bp(by))/2*sc, wz = (bp(8 - az)+bp(8 - bz))/2*sc;
       const v = new THREE.Vector3(wx, wy, wz);
       v.project(cam);
       const sx = (v.x * 0.5 + 0.5) * innerWidth;
@@ -1181,6 +1225,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       cam.bottom = -s + vs;
       cam.updateProjectionMatrix();
       rndr.setSize(innerWidth, innerHeight);
+      applyCubeScale();
       resizeFx();
       needsRender = true;
     }
