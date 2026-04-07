@@ -220,8 +220,8 @@
     #btn-prev:hover, #btn-next:hover { color: #00ff66; }
 
     .nbtn {
-      width: 36px; height: 36px;
-      font-size: 11px;
+      width: 30px; height: 30px;
+      font-size: 9px;
       padding: 0;
       color: #aaffcc;
       box-shadow: 2px 2px 0 #001a0d;
@@ -229,8 +229,8 @@
     .nbtn:hover { background: #091a10; border-color: #00ff66; color: #00ff66; text-shadow: 0 0 8px #00ff66; }
 
     #btn-clr {
-      width: 36px; height: 36px;
-      padding: 0; font-size: 9px;
+      width: 30px; height: 30px;
+      padding: 0; font-size: 7px;
       color: #ff4444;
       border-color: #300000;
       box-shadow: 2px 2px 0 #1a0000;
@@ -345,7 +345,7 @@
     /* ── responsive ── */
     @media (max-width: 500px) {
       .title { font-size: 9px; }
-      .nbtn, #btn-clr { width: 32px; height: 32px; font-size: 9px; }
+      .nbtn, #btn-clr { width: 26px; height: 26px; font-size: 8px; }
       .axbtn { width: 28px; height: 28px; font-size: 7px; }
       #win-card { padding: 28px 22px; }
       select, button { font-size: 6px; }
@@ -358,7 +358,7 @@
   <div id="container"></div>
   <canvas id="fx"></canvas>
 
-  <p id="info">[ click cell ] [ 1-4 ] [ arrows = slice ]</p>
+  <p id="info">[ click cell ] [ 1-9 ] [ arrows = slice ]</p>
 
   <div id="ui">
     <div id="top-bar">
@@ -382,7 +382,7 @@
       <div class="grp">
         <span class="glbl">Slice</span>
         <button id="btn-prev">&#9664;</button>
-        <span id="slice-lbl">1 / 4</span>
+        <span id="slice-lbl">1 / 9</span>
         <button id="btn-next">&#9654;</button>
       </div>
       <div class="grp">
@@ -391,6 +391,11 @@
         <button class="nbtn" data-n="2">2</button>
         <button class="nbtn" data-n="3">3</button>
         <button class="nbtn" data-n="4">4</button>
+        <button class="nbtn" data-n="5">5</button>
+        <button class="nbtn" data-n="6">6</button>
+        <button class="nbtn" data-n="7">7</button>
+        <button class="nbtn" data-n="8">8</button>
+        <button class="nbtn" data-n="9">9</button>
         <button id="btn-clr">DEL</button>
       </div>
       <div class="grp">
@@ -425,128 +430,113 @@
     import * as THREE from 'three';
 
     // ═══════════════════════════════════════════════════════════
-    // SECTION 1 · SUDOKU LOGIC  (ported from generator.py)
+    // SECTION 1 · SUDOKU LOGIC (also duplicated in WORKER_SRC below)
     // ═══════════════════════════════════════════════════════════
 
+    // ── Web Worker source ──
+    const WORKER_SRC = `
+      function make3(v) {
+        v = v === undefined ? 0 : v;
+        return Array.from({ length: 9 }, () =>
+          Array.from({ length: 9 }, () => Array(9).fill(v)));
+      }
+      function copy3(g) { return g.map(a => a.map(b => b.slice())); }
+      function shuffle(a) {
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = (Math.random() * (i + 1)) | 0;
+          const t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+      }
+      function genSolution() {
+        // Closed-form 9x9x9 sudoku from generate3dsudoku.py
+        // g[x][y][z] = matrix[z][y][x] in the Python formulation
+        const g = make3(0);
+        for (let z = 0; z < 9; z++)
+          for (let y = 0; y < 9; y++)
+            for (let x = 0; x < 9; x++) {
+              const x1 = Math.floor(x/3), x0 = x%3;
+              const y1 = Math.floor(y/3), y0 = y%3;
+              const z1 = Math.floor(z/3), z0 = z%3;
+              const v1 = (x0 + y1 + z1 + z0) % 3;
+              const v0 = (x1 + y0 + 2*z1 + z0) % 3;
+              g[x][y][z] = 3*v1 + v0 + 1;
+            }
+        // Random digit permutation for variety (9! = 362880 variants)
+        const perm = shuffle([1,2,3,4,5,6,7,8,9]);
+        for (let x = 0; x < 9; x++)
+          for (let y = 0; y < 9; y++)
+            for (let z = 0; z < 9; z++)
+              g[x][y][z] = perm[g[x][y][z] - 1];
+        return g;
+      }
+      function makePuzzle(sol, diff) {
+        const targets = { easy: 200, medium: 380, hard: 500 };
+        const target  = targets[diff] !== undefined ? targets[diff] : 380;
+        const puzzle  = copy3(sol);
+        const cells   = [];
+        for (let x = 0; x < 9; x++)
+          for (let y = 0; y < 9; y++)
+            for (let z = 0; z < 9; z++)
+              cells.push([x, y, z]);
+        shuffle(cells);
+        let removed = 0;
+        for (const [x, y, z] of cells) {
+          if (removed >= target) break;
+          puzzle[x][y][z] = 0;
+          removed++;
+        }
+        return puzzle;
+      }
+      onmessage = function(e) {
+        const sol    = genSolution();
+        const puzzle = makePuzzle(sol, e.data.diff);
+        postMessage({ sol, puzzle });
+      };
+    `;
+
+    let puzzleWorker = null;
+    function startWorker(diff, callback) {
+      if (puzzleWorker) puzzleWorker.terminate();
+      const blob = new Blob([WORKER_SRC], { type: 'text/javascript' });
+      const url  = URL.createObjectURL(blob);
+      puzzleWorker = new Worker(url);
+      puzzleWorker.onmessage = e => { URL.revokeObjectURL(url); callback(e.data); };
+      puzzleWorker.postMessage({ diff });
+    }
+
+    // Main-thread copies of logic (for conflict detection during play)
     function make3(v = 0) {
-      return Array.from({ length: 4 }, () =>
-        Array.from({ length: 4 }, () => Array(4).fill(v)));
+      return Array.from({ length: 9 }, () =>
+        Array.from({ length: 9 }, () => Array(9).fill(v)));
     }
+    function copy3(g) { return g.map(a => a.map(b => [...b])); }
 
-    function copy3(g) {
-      return g.map(a => a.map(b => [...b]));
-    }
-
-    function shuffle(a) {
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = (Math.random() * (i + 1)) | 0;
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-
-    /** True if num can be placed at (x,y,z) — identical logic to is_valid() in generator.py */
     function isValid(g, x, y, z, n) {
-      // Axis checks
-      for (let i = 0; i < 4; i++) {
-        if (g[i][y][z] === n) return false; // X-axis
-        if (g[x][i][z] === n) return false; // Y-axis
-        if (g[x][y][i] === n) return false; // Z-axis
+      for (let i = 0; i < 9; i++) {
+        if (g[i][y][z] === n) return false;
+        if (g[x][i][z] === n) return false;
+        if (g[x][y][i] === n) return false;
       }
-      // 2×2 subgrid on XY plane (fixed z)
-      const sx = (x >> 1) << 1, sy = (y >> 1) << 1, sz = (z >> 1) << 1;
-      for (let a = sx; a < sx + 2; a++)
-        for (let b = sy; b < sy + 2; b++)
+      const sx = Math.floor(x/3)*3, sy = Math.floor(y/3)*3, sz = Math.floor(z/3)*3;
+      for (let a = sx; a < sx+3; a++)
+        for (let b = sy; b < sy+3; b++)
           if (g[a][b][z] === n) return false;
-      // 2×2 subgrid on XZ plane (fixed y)
-      for (let a = sx; a < sx + 2; a++)
-        for (let c = sz; c < sz + 2; c++)
+      for (let a = sx; a < sx+3; a++)
+        for (let c = sz; c < sz+3; c++)
           if (g[a][y][c] === n) return false;
-      // 2×2 subgrid on YZ plane (fixed x)
-      for (let b = sy; b < sy + 2; b++)
-        for (let c = sz; c < sz + 2; c++)
+      for (let b = sy; b < sy+3; b++)
+        for (let c = sz; c < sz+3; c++)
           if (g[x][b][c] === n) return false;
       return true;
     }
 
-    function solveGrid(g) {
-      for (let x = 0; x < 4; x++)
-        for (let y = 0; y < 4; y++)
-          for (let z = 0; z < 4; z++)
-            if (g[x][y][z] === 0) {
-              for (const n of shuffle([1, 2, 3, 4])) {
-                if (isValid(g, x, y, z, n)) {
-                  g[x][y][z] = n;
-                  if (solveGrid(g)) return true;
-                  g[x][y][z] = 0;
-                }
-              }
-              return false;
-            }
-      return true;
-    }
-
-    function genSolution() {
-      const g = make3(0);
-      solveGrid(g);
-      return g;
-    }
-
-    /** Count solutions up to `max`; uses step-limit to stay fast */
-    function countSols(g, max = 2) {
-      let count = 0, steps = 0;
-      function s(h) {
-        if (count >= max || steps > 90000) return;
-        for (let x = 0; x < 4; x++)
-          for (let y = 0; y < 4; y++)
-            for (let z = 0; z < 4; z++)
-              if (h[x][y][z] === 0) {
-                for (let n = 1; n <= 4; n++)
-                  if (isValid(h, x, y, z, n)) {
-                    h[x][y][z] = n; steps++;
-                    s(h);
-                    h[x][y][z] = 0;
-                  }
-                return;
-              }
-        count++;
-      }
-      s(copy3(g));
-      return count;
-    }
-
-    /** Remove cells from solution while keeping a unique solution */
-    function makePuzzle(sol, diff) {
-      const targets = { easy: 18, medium: 32, hard: 46 };
-      const target  = targets[diff] ?? 32;
-      const puzzle  = copy3(sol);
-      const cells   = [];
-      for (let x = 0; x < 4; x++)
-        for (let y = 0; y < 4; y++)
-          for (let z = 0; z < 4; z++)
-            cells.push([x, y, z]);
-      shuffle(cells);
-      let removed = 0;
-      for (const [x, y, z] of cells) {
-        if (removed >= target) break;
-        const bak = puzzle[x][y][z];
-        puzzle[x][y][z] = 0;
-        if (countSols(puzzle) === 1) {
-          removed++;
-        } else {
-          puzzle[x][y][z] = bak; // restore — removal broke uniqueness
-        }
-      }
-      return puzzle;
-    }
-
-    /** Return set of keys "x,y,z" whose values conflict with another cell */
     function getConflicts(player) {
       const bad = new Set();
       const c   = copy3(player);
-      for (let x = 0; x < 4; x++)
-        for (let y = 0; y < 4; y++)
-          for (let z = 0; z < 4; z++) {
+      for (let x = 0; x < 9; x++)
+        for (let y = 0; y < 9; y++)
+          for (let z = 0; z < 9; z++) {
             const v = c[x][y][z];
             if (!v) continue;
             c[x][y][z] = 0;
@@ -578,11 +568,11 @@
     }
 
     const S = {
-      sol:    null,   // [4][4][4] complete solution
-      clues:  null,   // [4][4][4] bool  – immutable given cells
-      player: null,   // [4][4][4] int   – player entries (0 = blank)
+      sol:    null,   // [9][9][9] complete solution
+      clues:  null,   // [9][9][9] bool  – immutable given cells
+      player: null,   // [9][9][9] int   – player entries (0 = blank)
       axis:   'z',    // 'x' | 'y' | 'z'
-      slice:  0,      // 0-3
+      slice:  0,      // 0-8
       sel:    null,   // {x,y,z} | null
       diff:        'medium',
       solved:      false,
@@ -592,27 +582,29 @@
     function newGame() {
       S.solved = false;
       S.sel    = null;
+      showLoading(true);
 
-      S.sol   = genSolution();
-      const p = makePuzzle(S.sol, S.diff);
+      startWorker(S.diff, ({ sol, puzzle }) => {
+        S.sol    = sol;
+        S.clues  = make3(false);
+        S.player = make3(0);
 
-      S.clues  = make3(false);
-      S.player = make3(0);
+        for (let x = 0; x < 9; x++)
+          for (let y = 0; y < 9; y++)
+            for (let z = 0; z < 9; z++)
+              if (puzzle[x][y][z]) {
+                S.clues[x][y][z]  = true;
+                S.player[x][y][z] = puzzle[x][y][z];
+              }
 
-      for (let x = 0; x < 4; x++)
-        for (let y = 0; y < 4; y++)
-          for (let z = 0; z < 4; z++)
-            if (p[x][y][z]) {
-              S.clues[x][y][z]  = true;
-              S.player[x][y][z] = p[x][y][z];
-            }
-
-      celebratedGroups.clear();
-      conflictsDirty = true;
-      setAxis('z');
-      redraw();
-      syncUI();
-      startTimer();
+        celebratedGroups.clear();
+        conflictsDirty = true;
+        setAxis('z');
+        redraw();
+        syncUI();
+        startTimer();
+        showLoading(false);
+      });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -627,45 +619,33 @@
     };
     const AXIS_CSS = { x: '#e05555', y: '#44c45a', z: '#4488cc' };
 
-    const SP         = 1.0;  // centre-to-centre spacing within a 2×2 group
-    const CS         = 0.9;  // cube side length (gap within group ≈ 0.10)
-    const BLOCK_GAP  = 0.05; // extra separation between the two 2×2 groups per axis
-    // → gap between groups ≈ 0.65, vs 0.10 within — visually distinct
+    const SP        = 0.55;   // centre-to-centre spacing within a 3×3 band
+    const CS        = 0.48;   // cube side length
+    const BLOCK_GAP = 0.18;   // extra gap between 3×3 bands
 
-    /** Position on one axis, inserting the block gap between cells 1 and 2 */
-    function bp(i) { return (i - 1.5) * SP + (i >= 2 ? BLOCK_GAP * 0.5 : -BLOCK_GAP * 0.5); }
+    /** Position on one axis: 9 cells in 3 bands of 3, with BLOCK_GAP between bands */
+    function bp(i) {
+      return (i - 4) * SP + (Math.floor(i / 3) - 1) * BLOCK_GAP;
+    }
 
-    let rndr, scene, cam, pivot;
+    // Added bgScene to handle the background structure
+    let rndr, scene, bgScene, cam, pivot;
     const meshes   = {}; // key → THREE.Mesh (cell face)
     const eLines   = {}; // key → THREE.LineSegments (cell edges)
-    // faceData[key] = [{mat, ctx, tex}, …] for +Z, +X, +Y faces
-    const faceData = {};
+    const faceData = {}; // key → [{mat, ctx, tex}, …] for +Z, +X, +Y faces
     const rc     = new THREE.Raycaster();
     const pt     = new THREE.Vector2();
 
     const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-    /**
-     * Compute orthographic half-height so the full cube is always visible.
-     * Cube isometric vertical half-extent ≈ 3.1 world units.
-     * On portrait the horizontal axis is the bottleneck.
-     */
     function computeViewSize() {
       const a = innerWidth / innerHeight;
-      const forHoriz = 3.5 / Math.min(a, 1.0);
-      return Math.max(forHoriz, 4.75);
+      const forHoriz = 5.5 / Math.min(a, 1.0);
+      return Math.max(forHoriz, 6.5);
     }
 
-    /**
-     * Shift the frustum UP so the cube sits above the bottom toolbar.
-     * uiEl height in px → convert to world units.
-     */
     function computeVShift(s) {
       const uiH = document.getElementById('ui').getBoundingClientRect().height || 110;
-      // In Three.js ortho, world Y=0 maps to screen_y = (top / 2s) * innerHeight.
-      // To place the cube at the centre of the visible area (above the toolbar):
-      //   target screen_y = (innerHeight - uiH) / 2
-      // Solving: vs = -s * uiH / innerHeight  (negative = shift frustum down → cube moves up on screen)
       return -s * uiH / innerHeight;
     }
 
@@ -679,6 +659,7 @@
       con.appendChild(rndr.domElement);
 
       scene = new THREE.Scene();
+      bgScene = new THREE.Scene();
 
       const a = innerWidth / innerHeight;
       const s = computeViewSize();
@@ -687,28 +668,48 @@
       cam.position.set(7, 7, 7);
       cam.lookAt(0, 0, 0);
 
-      pivot = new THREE.Group(); // no rotation — iso camera shows all faces
+      pivot = new THREE.Group();
       scene.add(pivot);
 
-      // Shared geometries
+      // ── Background Cube Outline ──
+      const bgGroup = new THREE.Group();
+      // Size perfectly wrapping one 3x3x3 block
+      const bSize = 2 * SP + CS;
+      const bgGeo = new THREE.BoxGeometry(bSize, bSize, bSize);
+      const bgEdges = new THREE.EdgesGeometry(bgGeo);
+      // Faint green line to sit in the background
+      const bgMat = new THREE.LineBasicMaterial({ 
+        color: 0x0a2a18, 
+        transparent: true, 
+        opacity: 0.6 
+      });
+
+      // Assemble the 27 blocks representing the 3x3x3 framework
+      for (let bx of [1, 4, 7]) {
+        for (let by of [1, 4, 7]) {
+          for (let bz of [1, 4, 7]) {
+            const box = new THREE.LineSegments(bgEdges, bgMat);
+            box.position.set(bp(bx), bp(by), bp(8 - bz)); // <-- Inverted visual Z
+            bgGroup.add(box);
+          }
+        }
+      }
+      bgScene.add(bgGroup);
+
+      // Shared geometries for active cells
       const bGeo = new THREE.BoxGeometry(CS, CS, CS);
       const eGeo = new THREE.EdgesGeometry(bGeo);
 
-      for (let x = 0; x < 4; x++)
-        for (let y = 0; y < 4; y++)
-          for (let z = 0; z < 4; z++) {
+      for (let x = 0; x < 9; x++)
+        for (let y = 0; y < 9; y++)
+          for (let z = 0; z < 9; z++) {
             const k   = `${x},${y},${z}`;
-            const pos = new THREE.Vector3(bp(x), bp(y), bp(z));
+            const pos = new THREE.Vector3(bp(x), bp(y), bp(8 - z)); // <-- Inverted visual Z
 
             // ── Cell face mesh ──
             const mesh = new THREE.Mesh(
               bGeo,
-              new THREE.MeshBasicMaterial({
-                color:      0x252a36,
-                transparent: true,
-                opacity:    0.06,
-                depthWrite: false
-              })
+              new THREE.MeshBasicMaterial({ color: 0x252a36 })
             );
             mesh.position.copy(pos);
             mesh.userData = { x, y, z, k };
@@ -721,79 +722,71 @@
               new THREE.LineBasicMaterial({
                 color:       0x253646,
                 transparent: true,
-                opacity:     0.28
+                opacity:     0
               })
             );
-            mesh.add(el);
+            el.position.copy(pos);
+            el.visible = false;
+            pivot.add(el);
             eLines[k] = el;
 
-            // ── Face planes (dice-style numbers) ──
-            // Three planes on the three camera-facing faces: +Z, +X, +Y
+            // ── Face planes ──
             const FACE_DEFS = [
-              { pos: [0,       0,       CS/2+.003], rot: [0, 0, 0]             },  // +Z
-              { pos: [CS/2+.003, 0,     0        ], rot: [0, Math.PI/2, 0]     },  // +X
-              { pos: [0,       CS/2+.003, 0      ], rot: [-Math.PI/2, 0, 0]    },  // +Y
+              { pos: [0,         0,         CS/2+.003], rot: [0, 0, 0]          },
+              { pos: [CS/2+.003, 0,         0        ], rot: [0, Math.PI/2, 0]  },
+              { pos: [0,         CS/2+.003, 0        ], rot: [-Math.PI/2, 0, 0] },
             ];
-            const pGeo = new THREE.PlaneGeometry(CS * 0.82, CS * 0.82);
+            const pGeo = new THREE.PlaneGeometry(CS * 0.96, CS * 0.96);
             faceData[k] = FACE_DEFS.map(({ pos, rot }) => {
               const canvas = document.createElement('canvas');
-              canvas.width = canvas.height = 128; // 4× fewer pixels than 256
+              canvas.width = canvas.height = CANVAS_W;
               const ctx = canvas.getContext('2d');
               const tex = new THREE.CanvasTexture(canvas);
               const mat = new THREE.MeshBasicMaterial({
-                map: tex, transparent: true, opacity: 0,
-                depthWrite: false, side: THREE.FrontSide
+                map: tex, transparent: true, depthWrite: false,
+                side: THREE.FrontSide
               });
               const plane = new THREE.Mesh(pGeo, mat);
               plane.position.set(...pos);
               plane.rotation.set(...rot);
+              plane.visible = false;
               mesh.add(plane);
-              return { mat, ctx, tex };
+              return { mat, ctx, tex, plane, lastKey: '' };
             });
           }
 
-      // ── 2×2 group border frames ──────────────────────────────
-      // Each 4×4 slice has four 2×2 sub-blocks. We draw one thin
-      // wireframe box per block (spanning both cells) so the groups
-      // are visible even on inactive slices.
       buildBlockFrames();
 
-      // Events
       con.addEventListener('pointerdown', onClick);
       document.addEventListener('keydown', onKey);
       window.addEventListener('resize', onResize);
     }
 
-    // Stores the 3×4 sets of block-frame lines: blockFrames[axis][slice][blockIdx]
+    // blockFrames[axis][slice] = array of 9 LineSegments (one per 3×3 block)
     const blockFrames = { x: [], y: [], z: [] };
 
     function buildBlockFrames() {
-      // Half-size of a 2×2 block group (centre-to-edge including cell body)
-      const half = SP * 0.5 + CS * 0.5;   // from group centre to outer edge
-      const bGeo = new THREE.BoxGeometry(1, 1, 1); // scaled per frame
+      const blockSize = 2 * SP + CS;
+      const bGeo = new THREE.BoxGeometry(1, 1, 1);
       const eGeo = new THREE.EdgesGeometry(bGeo);
 
-      // For each axis, each of the 4 slices has four 2×2 blocks (bi,bj ∈ {0,1})
       ['x','y','z'].forEach(axis => {
         blockFrames[axis] = [];
-        for (let si = 0; si < 4; si++) {         // slice index
+        for (let si = 0; si < 9; si++) {
           const frames = [];
-          for (let bi = 0; bi < 2; bi++) {        // block row
-            for (let bj = 0; bj < 2; bj++) {      // block col
-              // Centre of this 2×2 group in the two "free" axes
-              // Group 0 → cells 0,1 → centre at bp(0)+bp(1))/2
-              // Group 1 → cells 2,3 → centre at (bp(2)+bp(3))/2
-              const c0 = (bp(bi * 2) + bp(bi * 2 + 1)) / 2;
-              const c1 = (bp(bj * 2) + bp(bj * 2 + 1)) / 2;
-              const cs = bp(si); // position along the slice axis
+          for (let bi = 0; bi < 3; bi++) {
+            for (let bj = 0; bj < 3; bj++) {
+              const c0 = (bp(bi*3) + bp(bi*3+1) + bp(bi*3+2)) / 3;
+              const c1 = (bp(bj*3) + bp(bj*3+1) + bp(bj*3+2)) / 3;
+              const cs = bp(si);
 
               let px, py, pz, sx, sy, sz;
-              if (axis === 'z') { px=c0; py=c1; pz=cs; sx=2*half; sy=2*half; sz=CS; }
-              else if (axis === 'x') { px=cs; py=c0; pz=c1; sx=CS; sy=2*half; sz=2*half; }
-              else               { px=c0; py=cs; pz=c1; sx=2*half; sy=CS; sz=2*half; }
+              if (axis === 'z')      { px=c0; py=c1; pz=bp(8 - si); sx=blockSize; sy=blockSize; sz=CS; } // <-- Inverted visual Z
+              else if (axis === 'x') { px=cs; py=c0; pz=c1; sx=CS; sy=blockSize; sz=blockSize; }
+              else                   { px=c0; py=cs; pz=c1; sx=blockSize; sy=CS; sz=blockSize; }
 
               const mat = new THREE.LineBasicMaterial({
-                color: 0x4a5568, transparent: true, opacity: 0.0
+                color: 0x4a5568, transparent: true, opacity: 0.8
               });
               const frame = new THREE.LineSegments(eGeo, mat);
               frame.position.set(px, py, pz);
@@ -811,10 +804,7 @@
     // SECTION 4 · VISUALS
     // ═══════════════════════════════════════════════════════════
 
-    // Dirty render flag — only submit a GPU frame when something changed
     let needsRender = true;
-
-    // Cached conflict set — recomputed only when the player grid changes
     let conflictsCache = new Set();
     let conflictsDirty = true;
 
@@ -832,26 +822,23 @@
              (S.axis === 'z' && z === S.slice);
     }
 
-    const CANVAS_W = 128;
+    const CANVAS_W = 64;
 
-    /** Draw a number on a face canvas. Pass num=0 to clear. */
     function drawFace(ctx, tex, num, color, glowColor) {
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_W);
       if (num > 0) {
-        ctx.font = `${CANVAS_W * 0.52}px "Press Start 2P", monospace`;
+        ctx.font = `${CANVAS_W * 0.6}px "Press Start 2P", monospace`;
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
-        // drop shadow for depth
         ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
         ctx.shadowColor = 'rgba(0,0,0,0.85)';
         ctx.shadowBlur  = 18;
         ctx.fillStyle   = color;
-        ctx.fillText(String(num), CANVAS_W / 2, CANVAS_W / 2 + 8);
-        // optional glow pass
+        ctx.fillText(String(num), CANVAS_W / 2, CANVAS_W / 2);
         if (glowColor) {
           ctx.shadowColor = glowColor;
           ctx.shadowBlur  = 28;
-          ctx.fillText(String(num), CANVAS_W / 2, CANVAS_W / 2 + 8);
+          ctx.fillText(String(num), CANVAS_W / 2, CANVAS_W / 2);
         }
         ctx.shadowBlur = 0;
       }
@@ -864,16 +851,15 @@
       const ac  = AXIS_CLR[S.axis];
       needsRender = true;
 
-      // ── Orthogonal preview: cells along the axis-line through the selected cell ──
+      // ── Orthogonal preview ──
       const previewKeys = new Set();
       if (S.sel && S.showPreview) {
         const { x: sx, y: sy, z: sz } = S.sel;
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 9; i++) {
           if (S.axis === 'z') previewKeys.add(`${sx},${sy},${i}`);
           else if (S.axis === 'x') previewKeys.add(`${i},${sy},${sz}`);
           else                     previewKeys.add(`${sx},${i},${sz}`);
         }
-        // Remove the active-slice cell itself (already shown normally)
         previewKeys.delete(`${sx},${sy},${sz}`);
       }
 
@@ -882,17 +868,18 @@
         blockFrames[axis].forEach((sliceFrames, si) => {
           const isActive = axis === S.axis && si === S.slice;
           sliceFrames.forEach(f => {
-            f.material.color.setHex(isActive ? AXIS_CLR[axis].edge : 0x2d3748);
-            f.material.opacity = isActive ? 0.85 : 0.12;
+            f.material.color.setHex(AXIS_CLR[axis].edge);
+            f.material.opacity = isActive ? 0.85 : 0;
           });
         });
       });
 
-      for (let x = 0; x < 4; x++)
-        for (let y = 0; y < 4; y++)
-          for (let z = 0; z < 4; z++) {
+      for (let x = 0; x < 9; x++)
+        for (let y = 0; y < 9; y++)
+          for (let z = 0; z < 9; z++) {
             const k       = `${x},${y},${z}`;
-            const mat     = meshes[k].material;
+            const mesh    = meshes[k];
+            const mat     = mesh.material;
             const eMat    = eLines[k].material;
             const v       = S.player[x][y][z];
             const act     = inSlice(x, y, z);
@@ -901,53 +888,64 @@
             const err     = bad.has(k);
             const preview = previewKeys.has(k);
 
-            // ── Cell face colour ──
+            if (!act && !sel && !preview) {
+              mesh.visible = false;
+              eLines[k].visible = false;
+              faceData[k].forEach(fd => {
+                fd.plane.visible = false;
+                fd.lastKey = '';
+              });
+              continue;
+            }
+
+            // Active / selected / preview cell
+            mesh.visible = true;
+            eLines[k].visible = act;
+
             if (sel) {
-              mat.color.setHex(0x00ccaa); mat.opacity = 1.0;
+              mat.color.setHex(0x00ccaa);
+              mat.transparent = false; mat.opacity = 1;
             } else if (act && err) {
-              mat.color.setHex(0xcc2222); mat.opacity = 1.0;
+              mat.color.setHex(0xcc2222);
+              mat.transparent = false; mat.opacity = 1;
             } else if (act && clue) {
-              mat.color.setHex(ac.clueFace); mat.opacity = 1.0;
+              mat.color.setHex(ac.clueFace);
+              mat.transparent = false; mat.opacity = 1;
             } else if (act) {
-              mat.color.setHex(ac.face); mat.opacity = 1.0;
-            } else if (preview) {
-              mat.color.setHex(0x1a2a1a); mat.opacity = 0.35;
+              mat.color.setHex(ac.face);
+              mat.transparent = false; mat.opacity = 1;
             } else {
-              mat.color.setHex(0x252a36); mat.opacity = 0.06;
+              // preview — 50% opacity
+              mat.color.setHex(ac.face);
+              mat.transparent = true; mat.opacity = 0.5;
             }
 
-            // ── Edge colour ──
-            if (act) {
-              eMat.color.setHex(ac.edge); eMat.opacity = 0.75;
-            } else if (preview) {
-              eMat.color.setHex(0x2a6040); eMat.opacity = 0.5;
-            } else {
-              eMat.color.setHex(0x253646); eMat.opacity = 0.22;
-            }
+            eMat.color.setHex(ac.edge); eMat.opacity = 0.75;
 
-            // ── Dice-face numbers ──
-            const color = err  ? '#f87171' : clue ? '#93c5fd' : '#ffd060';
-            const glow  = err  ? '#f8717166' : clue ? null : '#ffd06055';
-            faceData[k].forEach(({ mat: fm, ctx, tex }) => {
-              if (v > 0 && act) {
-                fm.opacity = 1.0;
-                drawFace(ctx, tex, v, color, glow);
-              } else if (v > 0 && preview) {
-                fm.opacity = 0.38;
-                drawFace(ctx, tex, v, '#66aa88', null);
-              } else {
-                fm.opacity = 0;
-                drawFace(ctx, tex, 0, '', null);
+            const color = err ? '#f87171' : clue ? '#93c5fd' : '#ffd060';
+            const glow  = err ? '#f8717166' : clue ? null : '#ffd06055';
+            const previewColor = '#66aa88';
+            faceData[k].forEach(fd => {
+              const drawColor = preview && !act ? previewColor : color;
+              const drawGlow  = preview && !act ? null : glow;
+              const newKey = v > 0 ? `${v}|${drawColor}|${drawGlow || ''}` : '';
+              if (fd.lastKey !== newKey) {
+                fd.lastKey = newKey;
+                if (newKey) {
+                  fd.plane.visible = true;
+                  fd.mat.opacity = preview && !act ? 0.5 : 1.0;
+                  drawFace(fd.ctx, fd.tex, v, drawColor, drawGlow);
+                } else {
+                  fd.plane.visible = false;
+                }
               }
             });
           }
     }
 
-    /** Switch active axis. If a cell is selected, jump to its slice on the new axis (feature 3). */
     function setAxis(axis) {
       S.axis  = axis;
       S.slice = S.sel ? S.sel[axis] : 0;
-      // keep selection so the orthogonal preview updates for the new axis
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -964,7 +962,6 @@
       for (const h of hits) {
         const { x, y, z, k } = h.object.userData;
         if (!inSlice(x, y, z)) continue;
-        // toggle selection
         if (S.sel && S.sel.x === x && S.sel.y === y && S.sel.z === z) {
           S.sel = null;
         } else {
@@ -998,22 +995,20 @@
     }
 
     function checkWin() {
-      for (let x = 0; x < 4; x++)
-        for (let y = 0; y < 4; y++)
-          for (let z = 0; z < 4; z++)
+      for (let x = 0; x < 9; x++)
+        for (let y = 0; y < 9; y++)
+          for (let z = 0; z < 9; z++)
             if (!S.player[x][y][z]) return;
       if (getConflicts(S.player).size > 0) return;
       S.solved = true;
       stopTimer();
       const elapsed = formatTime(Date.now() - timerStart);
       document.getElementById('win-time').textContent = elapsed;
-      // sync win-screen diff selector to current difficulty
       document.getElementById('win-diff').value = S.diff;
       burstAll();
       setTimeout(() => { document.getElementById('win').style.display = 'flex'; }, 1200);
     }
 
-    /** Check if any new lines/columns/axes/boxes/slices just completed and fire particles */
     function checkCompletions(x, y, z) {
       const bad = getConflicts(S.player);
 
@@ -1021,96 +1016,101 @@
         return cells.every(([cx,cy,cz]) => S.player[cx][cy][cz] > 0 && !bad.has(`${cx},${cy},${cz}`));
       }
 
-      // Build list of group keys + world-space centre positions to celebrate
       const toFire = [];
 
       // X-lines (y,z fixed)
       {
+        const cells = []; for (let i = 0; i < 9; i++) cells.push([i,y,z]);
         const key = `xl_${y}_${z}`;
-        if (!celebratedGroups.has(key) && groupComplete([[0,y,z],[1,y,z],[2,y,z],[3,y,z]])) {
+        if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([0,y,z],[3,y,z]));
+          toFire.push(worldCentre([0,y,z],[8,y,z]));
         }
       }
       // Y-lines (x,z fixed)
       {
+        const cells = []; for (let i = 0; i < 9; i++) cells.push([x,i,z]);
         const key = `yl_${x}_${z}`;
-        if (!celebratedGroups.has(key) && groupComplete([[x,0,z],[x,1,z],[x,2,z],[x,3,z]])) {
+        if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([x,0,z],[x,3,z]));
+          toFire.push(worldCentre([x,0,z],[x,8,z]));
         }
       }
       // Z-lines (x,y fixed)
       {
+        const cells = []; for (let i = 0; i < 9; i++) cells.push([x,y,i]);
         const key = `zl_${x}_${y}`;
-        if (!celebratedGroups.has(key) && groupComplete([[x,y,0],[x,y,1],[x,y,2],[x,y,3]])) {
+        if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([x,y,0],[x,y,3]));
+          toFire.push(worldCentre([x,y,0],[x,y,8]));
         }
       }
-      // Z-slice (all 16 cells at z)
+      // Z-slice
       {
-        const cells = []; for(let a=0;a<4;a++) for(let b=0;b<4;b++) cells.push([a,b,z]);
+        const cells = []; for(let a=0;a<9;a++) for(let b=0;b<9;b++) cells.push([a,b,z]);
         const key = `zs_${z}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([0,0,z],[3,3,z]));
+          toFire.push(worldCentre([0,0,z],[8,8,z]));
         }
       }
       // X-slice
       {
-        const cells = []; for(let b=0;b<4;b++) for(let c=0;c<4;c++) cells.push([x,b,c]);
+        const cells = []; for(let b=0;b<9;b++) for(let c=0;c<9;c++) cells.push([x,b,c]);
         const key = `xs_${x}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([x,0,0],[x,3,3]));
+          toFire.push(worldCentre([x,0,0],[x,8,8]));
         }
       }
       // Y-slice
       {
-        const cells = []; for(let a=0;a<4;a++) for(let c=0;c<4;c++) cells.push([a,y,c]);
+        const cells = []; for(let a=0;a<9;a++) for(let c=0;c<9;c++) cells.push([a,y,c]);
         const key = `ys_${y}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([0,y,0],[3,y,3]));
+          toFire.push(worldCentre([0,y,0],[8,y,8]));
         }
       }
-      // 2x2 boxes on each plane
-      const bx = (x>>1)<<1, by = (y>>1)<<1, bz = (z>>1)<<1;
+      // 3×3 boxes on each plane
+      const bx = Math.floor(x/3)*3, by = Math.floor(y/3)*3, bz = Math.floor(z/3)*3;
       // XY box at fixed z
       {
-        const cells = [[bx,by,z],[bx+1,by,z],[bx,by+1,z],[bx+1,by+1,z]];
+        const cells = [];
+        for (let a = bx; a < bx+3; a++) for (let b = by; b < by+3; b++) cells.push([a,b,z]);
         const key = `bxy_${bx}_${by}_${z}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([bx,by,z],[bx+1,by+1,z]));
+          toFire.push(worldCentre([bx,by,z],[bx+2,by+2,z]));
         }
       }
       // XZ box at fixed y
       {
-        const cells = [[bx,y,bz],[bx+1,y,bz],[bx,y,bz+1],[bx+1,y,bz+1]];
+        const cells = [];
+        for (let a = bx; a < bx+3; a++) for (let c = bz; c < bz+3; c++) cells.push([a,y,c]);
         const key = `bxz_${bx}_${y}_${bz}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([bx,y,bz],[bx+1,y,bz+1]));
+          toFire.push(worldCentre([bx,y,bz],[bx+2,y,bz+2]));
         }
       }
       // YZ box at fixed x
       {
-        const cells = [[x,by,bz],[x,by+1,bz],[x,by,bz+1],[x,by+1,bz+1]];
+        const cells = [];
+        for (let b = by; b < by+3; b++) for (let c = bz; c < bz+3; c++) cells.push([x,b,c]);
         const key = `byz_${x}_${by}_${bz}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([x,by,bz],[x,by+1,bz+1]));
+          toFire.push(worldCentre([x,by,bz],[x,by+2,bz+2]));
         }
       }
 
       toFire.forEach(([wx, wy]) => spawnStars(wx, wy));
     }
 
-    /** World-space centre of two 3D grid cells, projected to screen XY */
     function worldCentre([ax,ay,az],[bx,by,bz]) {
-      const wx = (bp(ax)+bp(bx))/2, wy = (bp(ay)+bp(by))/2, wz = (bp(az)+bp(bz))/2;
+      // <-- Inverted visual Z logic added to fireworks
+      const wx = (bp(ax)+bp(bx))/2, wy = (bp(ay)+bp(by))/2, wz = (bp(8 - az)+bp(8 - bz))/2; 
       const v = new THREE.Vector3(wx, wy, wz);
       v.project(cam);
       const sx = (v.x * 0.5 + 0.5) * innerWidth;
@@ -1119,7 +1119,7 @@
     }
 
     function chSlice(d) {
-      S.slice = ((S.slice + d) % 4 + 4) % 4;
+      S.slice = ((S.slice + d) % 9 + 9) % 9;
       S.sel   = null;
       redraw();
       syncUI();
@@ -1128,7 +1128,7 @@
     function onKey(e) {
       if (e.metaKey || e.ctrlKey || S.solved) return;
       const k = e.key;
-      if ('1234'.includes(k) && k.length === 1) { e.preventDefault(); fill(+k); }
+      if ('123456789'.includes(k) && k.length === 1) { e.preventDefault(); fill(+k); }
       else if (k === 'Backspace' || k === 'Delete') { e.preventDefault(); clrCell(); }
       else if (k === 'ArrowRight' || k === 'ArrowUp')   { e.preventDefault(); chSlice(+1); }
       else if (k === 'ArrowLeft'  || k === 'ArrowDown')  { e.preventDefault(); chSlice(-1); }
@@ -1152,7 +1152,7 @@
         btn.classList.toggle('active-z', S.axis === a && a === 'z');
       });
       const lbl = document.getElementById('slice-lbl');
-      lbl.textContent = `${S.slice + 1} / 4`;
+      lbl.textContent = `${S.slice + 1} / 9`;
       lbl.style.color = AXIS_CSS[S.axis];
     }
 
@@ -1180,7 +1180,6 @@
 
     const celebratedGroups = new Set();
 
-    // Pixel-art star particles rendered on a 2D canvas overlay (#fx)
     const fxCanvas = document.getElementById('fx');
     const fxCtx    = fxCanvas.getContext('2d');
     let   particles = [];
@@ -1190,7 +1189,6 @@
       fxCanvas.height = innerHeight;
     }
 
-    // Retro pixel palette
     const STAR_COLORS = ['#00ff66','#ffff00','#ff66aa','#66ffff','#ff9900','#ffffff'];
 
     function spawnStars(cx, cy) {
@@ -1201,21 +1199,20 @@
         particles.push({
           x: cx, y: cy,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 1.5, // slight upward bias
+          vy: Math.sin(angle) * speed - 1.5,
           life: 1.0,
           decay: 0.018 + Math.random() * 0.012,
-          size: (Math.random() < 0.5 ? 3 : 5), // pixel sizes: 3 or 5
+          size: (Math.random() < 0.5 ? 3 : 5),
           color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
-          // pixel star shape: 0=square, 1=plus cross
           shape: Math.random() < 0.4 ? 1 : 0,
         });
       }
     }
 
     function burstAll() {
-      for (let x = 0; x < 4; x++)
-        for (let y = 0; y < 4; y++)
-          for (let z = 0; z < 4; z++) {
+      for (let x = 0; x < 9; x++)
+        for (let y = 0; y < 9; y++)
+          for (let z = 0; z < 9; z++) {
             const [sx, sy] = worldCentre([x,y,z],[x,y,z]);
             setTimeout(() => spawnStars(sx, sy), Math.random() * 600);
           }
@@ -1225,10 +1222,8 @@
       ctx.fillStyle = color;
       const px = Math.round(x), py = Math.round(y);
       if (shape === 0) {
-        // solid pixel square
         ctx.fillRect(px - size/2, py - size/2, size, size);
       } else {
-        // plus / cross
         ctx.fillRect(px - size/2, py - 1, size, 2);
         ctx.fillRect(px - 1, py - size/2, 2, size);
       }
@@ -1259,6 +1254,17 @@
       requestAnimationFrame(loop);
       tickParticles();
       if (needsRender) {
+        // Disable autoClear so we can layer our background scene and play scene seamlessly
+        rndr.autoClear = false;
+        rndr.clear();
+        
+        // Render the new skeleton background scene
+        rndr.render(bgScene, cam);
+        
+        // Clear depth so the puzzle slices always render directly over the background
+        rndr.clearDepth();
+        
+        // Render the active game
         rndr.render(scene, cam);
         needsRender = false;
       }
@@ -1268,40 +1274,31 @@
       resizeFx();
       initThree();
 
-      // Axis buttons
       ['x', 'y', 'z'].forEach(a =>
         document.getElementById(`btn-${a}`).addEventListener('click', () =>
           setAxisAndSync(a)));
 
-      // Slice buttons
       document.getElementById('btn-prev').addEventListener('click', () => chSlice(-1));
       document.getElementById('btn-next').addEventListener('click', () => chSlice(+1));
 
-      // Number pad
       document.querySelectorAll('.nbtn').forEach(b =>
         b.addEventListener('click', () => fill(+b.dataset.n)));
       document.getElementById('btn-clr').addEventListener('click', clrCell);
 
-      // New game
       document.getElementById('btn-new').addEventListener('click', () => {
         S.diff = document.getElementById('sel-diff').value;
         document.getElementById('win').style.display = 'none';
-        showLoading(true);
-        // Small delay so the loading UI has time to paint before the heavy compute
-        setTimeout(() => { newGame(); showLoading(false); }, 60);
+        newGame();
       });
 
       document.getElementById('btn-again').addEventListener('click', () => {
-        // pick difficulty from the win-screen selector, then start a new game
         const winDiff = document.getElementById('win-diff').value;
         document.getElementById('sel-diff').value = winDiff;
         S.diff = winDiff;
         document.getElementById('win').style.display = 'none';
-        showLoading(true);
-        setTimeout(() => { newGame(); showLoading(false); }, 60);
+        newGame();
       });
 
-      // Preview toggle
       const btnPreview = document.getElementById('btn-preview');
       btnPreview.addEventListener('click', () => {
         S.showPreview = !S.showPreview;
@@ -1314,9 +1311,8 @@
       loop();
 
       // First puzzle — wait for Press Start 2P to load so canvas text renders correctly
-      showLoading(true);
       document.fonts.load('12px "Press Start 2P"').finally(() => {
-        setTimeout(() => { newGame(); showLoading(false); }, 30);
+        newGame();
       });
     }
 
