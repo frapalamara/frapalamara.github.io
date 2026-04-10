@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Privacy Policy - SUDOKUBE</title>
+  
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── CRT scanlines ── */
+    body::after {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 3px,
+        rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 4px
+      );
+      pointer-events: none; z-index: 999;
+    }
+
+    /* ── CRT edge glow ── */
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      box-shadow: inset 0 0 80px rgba(0,255,100,0.04), inset 0 0 3px rgba(0,255,100,0.12);
+      pointer-events: none; z-index: 5;
+    }
+
+    body {
+      background: #050a0e; color: #aaffcc;
+      font-family: 'Press Start 2P', monospace;
+      padding: 40px 20px;
+      line-height: 1.8;
+    }
+
+    #content {
+      max-width: 800px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+    }
+
+    h1, h2 {
+      color: #00ff66;
+      text-shadow: 0 0 8px rgba(0,255,100,0.5);
+      margin-top: 40px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+
+    h1 { font-size: 20px; text-align: center; letter-spacing: 2px; }
+    h2 { font-size: 12px; border-bottom: 2px solid #0a2a18; padding-bottom: 8px; }
+    
+    p, ul { font-size: 9px; margin-bottom: 20px; }
+    ul { padding-left: 24px; }
+    li { margin-bottom: 12px; }
+
+    a {
+      color: #00ff66; text-decoration: none;
+      border-bottom: 1px dashed #00ff66;
+      transition: all 0.2s;
+    }
+    a:hover {
+      background: #00ff66; color: #050a0e;
+      text-shadow: none;
+    }
+
+    .date { text-align: center; font-size: 8px; color: #1e5530; margin-bottom: 40px; }
+    
+    .btn-back {
+      display: inline-block; margin-top: 40px;
+      background: #002a10; border: 2px solid #00ff66;
+      color: #00ff66; padding: 10px 20px; font-size: 9px;
+      box-shadow: 4px 4px 0 #001a0d, 0 0 12px rgba(0,255,100,0.25);
+      cursor: pointer; text-transform: uppercase;
+      border-bottom: 2px solid #00ff66;
+    }
+    .btn-back:hover { background: #003d18; box-shadow: 4px 4px 0 #002a10, 0 0 20px rgba(0,255,100,0.5); }
+  </style>
+</head>
+<body>
+
+  <div id="content">
+    <h1>Privacy Policy</h1>
+    <div class="date">Last Updated: April 10, 2026</div>
+
+    <h2>1. Introduction</h2>
+    <p>Welcome to SUDOKUBE. We respect your privacy and are committed to protecting it. This Privacy Policy explains how information is collected, used, and shared when you visit our website at <strong>https://frapalamara.github.io</strong>.</p>
+
+    <h2>2. Information We Collect</h2>
+    <p>We use <strong>Google Analytics 4</strong> to understand how users interact with our game. This service automatically collects non-personally identifiable information, which may include:</p>
+    <ul>
+      <li>Browser type and device information</li>
+      <li>Approximate geographic location (country/city level)</li>
+      <li>Pages visited and time spent on the site</li>
+    </ul>
+
+    <h2>3. Cookies & Tracking</h2>
+    <p>We use cookies (small text files placed on your device) to track website performance and serve personalized advertisements. When you first visit the site, you are presented with a Consent Banner that allows you to manage your cookie preferences. You can change these preferences at any time by clearing your browser cookies.</p>
+
+    <h2>4. Google AdSense & Third-Party Advertising</h2>
+    <p>We use Google AdSense to display advertisements. Please be aware of the following:</p>
+    <ul>
+      <li>Third-party vendors, including Google, use cookies to serve ads based on your prior visits to this website or other websites.</li>
+      <li>Google's use of advertising cookies enables it and its partners to serve ads to you based on your visit to our site and/or other sites on the Internet.</li>
+      <li>You may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank">Google Ads Settings</a>.</li>
+    </ul>
+
+    <h2>5. Your Data Rights</h2>
+    <p>Depending on your location (such as under the GDPR in Europe, LGPD in Brazil, or CCPA in California), you have the right to access, delete, or restrict the processing of your data. Since we only collect aggregated analytic data and do not ask for personal information (like names or accounts), you can exercise your right to opt-out simply by using our Cookie Consent banner or adjusting your browser's cookie settings.</p>
+
+    <h2>6. Contact Us</h2>
+    <p>If you have any questions or concerns about this Privacy Policy or how your data is handled, you can reach out to the developer at: <a href="mailto:palafra03@gmail.com"><strong>palafra03@gmail.com</strong></a>.</p>
+
+    <div style="text-align: center;">
+      <a href="index.html" class="btn-back">Return to Game</a>
+    </div>
+  </div>
+
+</body>
+</html>

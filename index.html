@@ -5,22 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>SUDOKUBE</title>
   
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5DLKYSHYSG"></script>
+  <!-- Google Consent Mode v2 — default denied until user accepts -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-5DLKYSHYSG');
-  </script>
-  
-  <!-- AdSense Library -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8335884863674458" crossorigin="anonymous"></script>
-  <script>
-    // H5 Games Ad API shim — enables programmatic vignette ad breaks
-    window.adBreak = window.adConfig = function(o) {
-      (window.adsbygoogle = window.adsbygoogle || []).push(o);
-    };
+    gtag('consent', 'default', {
+      analytics_storage:  'denied',
+      ad_storage:         'denied',
+      ad_user_data:       'denied',
+      ad_personalization: 'denied',
+      wait_for_update: 500
+    });
   </script>
 
   <link rel="icon" type="image/png" href="favicon.png">
@@ -224,11 +219,19 @@
     .axbtn:hover:not(.active) { color: #00cc55; border-color: #144d28; }
 
     #slice-lbl {
-      min-width: 44px;
+      min-width: 58px;
       text-align: center;
       font-size: 8px;
       color: #00ff66;
       text-shadow: 0 0 6px rgba(0,255,100,0.5);
+    }
+
+    #num-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      justify-content: center;
     }
 
     #btn-prev, #btn-next {
@@ -373,7 +376,7 @@
       #top-bar { padding-top: 5px; gap: 8px; }
       .grp { padding: 4px 5px; gap: 2px; }
       .glbl { display: none; }
-      #slice-lbl { min-width: 36px; font-size: 7px; }
+      #slice-lbl { min-width: 50px; font-size: 7px; }
       #btn-prev, #btn-next { width: 24px; height: 24px; }
     }
 
@@ -394,6 +397,85 @@
     @media (min-width: 960px) {
       #ad-left, #ad-right { display: flex; }
     }
+
+    /* ── Cookie Consent Banner ── */
+    #cookie-banner {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #050a0e;
+      border-top: 2px solid #00ff41;
+      box-shadow: 0 -4px 0 #002a10, 0 0 20px rgba(0,255,65,0.15);
+      padding: 12px 16px;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-family: 'Press Start 2P', monospace;
+    }
+    #cookie-banner-inner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 860px;
+      width: 100%;
+    }
+    #cookie-text {
+      font-size: 7px;
+      color: #aaffcc;
+      line-height: 1.8;
+      flex: 1;
+      min-width: 220px;
+      text-align: center;
+    }
+    #cookie-text a { color: #00ff41; text-decoration: none; border-bottom: 1px dashed #00ff41; }
+    #cookie-text a:hover { background: #00ff41; color: #050a0e; }
+    #cookie-btns { display: flex; gap: 8px; flex-shrink: 0; }
+    #cookie-accept, #cookie-decline {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      padding: 8px 14px;
+      border-radius: 0;
+      cursor: pointer;
+      text-transform: uppercase;
+      outline: none;
+    }
+    #cookie-accept {
+      background: #002a10; border: 2px solid #00ff41; color: #00ff41;
+      box-shadow: 3px 3px 0 #001a0d, 0 0 10px rgba(0,255,65,0.2);
+    }
+    #cookie-accept:hover  { background: #003d18; box-shadow: 3px 3px 0 #002a10, 0 0 18px rgba(0,255,65,0.45); }
+    #cookie-accept:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #001a0d; }
+    #cookie-decline {
+      background: #002a10; border: 2px solid #00ff41; color: #00ff41;
+      box-shadow: 3px 3px 0 #001a0d, 0 0 10px rgba(0,255,65,0.2);
+    }
+    #cookie-decline:hover  { background: #003d18; box-shadow: 3px 3px 0 #002a10, 0 0 18px rgba(0,255,65,0.45); }
+    #cookie-decline:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #001a0d; }
+    #cookie-settings-link {
+      display: block;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: #1e5530;
+      text-decoration: none;
+      border-bottom: 1px dashed #1e5530;
+      cursor: pointer;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      padding: 0;
+      margin-top: 4px;
+    }
+    #cookie-settings-link:hover { color: #00ff41; border-bottom-color: #00ff41; }
+    @media (max-width: 500px) {
+      #cookie-banner { padding: 10px; }
+      #cookie-text, #cookie-accept, #cookie-decline { font-size: 6px; }
+      #cookie-accept, #cookie-decline { padding: 6px 10px; }
+    }
   </style>
 </head>
 <body>
@@ -409,12 +491,17 @@
   <div id="container"></div>
   <canvas id="fx"></canvas>
 
-  <p id="info">[ click cell ] [ 1-9 ] [ arrows = slice ]</p>
+  <p id="info">[ click cell ] [ fill ] [ arrows = slice ]</p>
 
   <div id="ui">
     <div id="top-bar">
       <span class="title">SUDOKUBE</span>
       <span id="timer">00:00</span>
+      <select id="sel-size">
+        <option value="4">4×4×4</option>
+        <option value="9" selected>9×9×9</option>
+        <option value="16">16×16×16</option>
+      </select>
       <select id="sel-diff">
         <option value="easy">Easy</option>
         <option value="medium" selected>Medium</option>
@@ -436,24 +523,16 @@
         <span id="slice-lbl">1 / 9</span>
         <button id="btn-next">&#9654;</button>
       </div>
-      <div class="grp">
+      <div class="grp" id="grp-fill">
         <span class="glbl">Fill</span>
-        <button class="nbtn" data-n="1">1</button>
-        <button class="nbtn" data-n="2">2</button>
-        <button class="nbtn" data-n="3">3</button>
-        <button class="nbtn" data-n="4">4</button>
-        <button class="nbtn" data-n="5">5</button>
-        <button class="nbtn" data-n="6">6</button>
-        <button class="nbtn" data-n="7">7</button>
-        <button class="nbtn" data-n="8">8</button>
-        <button class="nbtn" data-n="9">9</button>
-        <button id="btn-clr">DEL</button>
+        <div id="num-btns"></div>
       </div>
       <div class="grp">
         <span class="glbl">X-Ray</span>
         <button id="btn-preview" class="axbtn">OFF</button>
       </div>
     </div>
+    <button id="cookie-settings-link" onclick="window.resetCookieConsent()">Cookie Settings</button>
   </div>
 
   <div id="loading">
@@ -477,6 +556,97 @@
     </div>
   </div>
 
+  <!-- Cookie Consent Banner -->
+  <div id="cookie-banner" role="dialog" aria-label="Cookie consent">
+    <div id="cookie-banner-inner">
+      <p id="cookie-text">
+        This site uses cookies for analytics &amp; ads.
+        See our <a href="privacy.html">privacy policy</a>.
+      </p>
+      <div id="cookie-btns">
+        <button id="cookie-accept">Accept</button>
+        <button id="cookie-decline">Decline</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var GA_ID       = 'G-5DLKYSHYSG';
+      var ADSENSE_SRC = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8335884863674458';
+      var KEY         = 'cookieConsent';
+
+      function hideBanner() {
+        var b = document.getElementById('cookie-banner');
+        if (b) b.style.display = 'none';
+      }
+
+      function loadGA() {
+        gtag('consent', 'update', {
+          analytics_storage: 'granted', ad_storage: 'granted',
+          ad_user_data: 'granted', ad_personalization: 'granted'
+        });
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+        document.head.appendChild(s);
+        gtag('js', new Date());
+        gtag('config', GA_ID);
+      }
+
+      function loadAds() {
+        var s = document.createElement('script');
+        s.async = true; s.crossOrigin = 'anonymous';
+        s.src = ADSENSE_SRC;
+        s.onload = function() {
+          if (window.innerWidth >= 960) {
+            document.getElementById('ad-left').innerHTML =
+              '<ins class="adsbygoogle" style="display:inline-block;width:160px;height:600px" data-ad-client="ca-pub-8335884863674458" data-ad-slot="YOUR_LEFT_SLOT_ID"></ins>';
+            document.getElementById('ad-right').innerHTML =
+              '<ins class="adsbygoogle" style="display:inline-block;width:160px;height:600px" data-ad-client="ca-pub-8335884863674458" data-ad-slot="YOUR_RIGHT_SLOT_ID"></ins>';
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+          }
+        };
+        document.head.appendChild(s);
+      }
+
+      function accept() {
+        localStorage.setItem(KEY, 'accepted');
+        window.consentAccepted = true;
+        hideBanner(); loadGA(); loadAds();
+      }
+
+      function decline() {
+        localStorage.setItem(KEY, 'declined');
+        window.consentAccepted = false;
+        hideBanner();
+      }
+
+      function resetConsent() {
+        localStorage.removeItem(KEY);
+        window.consentAccepted = undefined;
+        var b = document.getElementById('cookie-banner');
+        if (b) b.style.display = 'flex';
+      }
+
+      window.resetCookieConsent = resetConsent;
+
+      document.getElementById('cookie-accept').addEventListener('click', accept);
+      document.getElementById('cookie-decline').addEventListener('click', decline);
+
+      var stored = localStorage.getItem(KEY);
+      if (stored === 'accepted') {
+        window.consentAccepted = true;
+        hideBanner(); loadGA(); loadAds();
+      } else if (stored === 'declined') {
+        window.consentAccepted = false;
+        hideBanner();
+      }
+      // else: no preference → banner stays visible
+    })();
+  </script>
+
   <script type="module">
     import * as THREE from 'three';
 
@@ -486,10 +656,10 @@
 
     // ── Web Worker source ──
     const WORKER_SRC = `
-      function make3(v) {
+      function make3(v, n) {
         v = v === undefined ? 0 : v;
-        return Array.from({ length: 9 }, () =>
-          Array.from({ length: 9 }, () => Array(9).fill(v)));
+        return Array.from({ length: n }, () =>
+          Array.from({ length: n }, () => Array(n).fill(v)));
       }
       function copy3(g) { return g.map(a => a.map(b => b.slice())); }
       function shuffle(a) {
@@ -499,36 +669,51 @@
         }
         return a;
       }
-      function genSolution() {
-        // Closed-form 9x9x9 sudoku from generate3dsudoku.py
-        // g[x][y][z] = matrix[z][y][x] in the Python formulation
-        const g = make3(0);
-        for (let z = 0; z < 9; z++)
-          for (let y = 0; y < 9; y++)
-            for (let x = 0; x < 9; x++) {
-              const x1 = Math.floor(x/3), x0 = x%3;
-              const y1 = Math.floor(y/3), y0 = y%3;
-              const z1 = Math.floor(z/3), z0 = z%3;
-              const v1 = (x0 + y1 + z1 + z0) % 3;
-              const v0 = (x1 + y0 + 2*z1 + z0) % 3;
-              g[x][y][z] = 3*v1 + v0 + 1;
+      // Closed-form NxNxN sudoku cube — algorithm from generatecube.py
+      // g[x][y][z] = matrix[z][y][x] in the Python formulation
+      function genSolution(N) {
+        const K = Math.round(Math.sqrt(N));
+        const gf4 = [0, 2, 3, 1]; // GF(4) mult-by-2 lookup for N=16
+        const g = make3(0, N);
+        for (let z = 0; z < N; z++)
+          for (let y = 0; y < N; y++)
+            for (let x = 0; x < N; x++) {
+              const xB = Math.floor(x/K), xC = x % K;
+              const yB = Math.floor(y/K), yC = y % K;
+              const zB = Math.floor(z/K), zC = z % K;
+              let value;
+              if (N === 4) {
+                const v1 = (xC + yB + zB + zC) % 2;
+                const v0 = (xB + yC + zC) % 2;
+                value = 2*v1 + v0 + 1;
+              } else if (N === 9) {
+                const v1 = (xC + yB + zB + zC) % 3;
+                const v0 = (xB + yC + 2*zB + zC) % 3;
+                value = 3*v1 + v0 + 1;
+              } else { // N === 16
+                const vHi = xC ^ yB ^ zB ^ zC;
+                const vLo = xB ^ yC ^ gf4[zB] ^ zC;
+                value = 4*vHi + vLo + 1;
+              }
+              g[x][y][z] = value;
             }
-        // Random digit permutation for variety (9! = 362880 variants)
-        const perm = shuffle([1,2,3,4,5,6,7,8,9]);
-        for (let x = 0; x < 9; x++)
-          for (let y = 0; y < 9; y++)
-            for (let z = 0; z < 9; z++)
+        // Random digit permutation for variety
+        const perm = shuffle(Array.from({ length: N }, (_, i) => i + 1));
+        for (let x = 0; x < N; x++)
+          for (let y = 0; y < N; y++)
+            for (let z = 0; z < N; z++)
               g[x][y][z] = perm[g[x][y][z] - 1];
         return g;
       }
-      function makePuzzle(sol, diff) {
-        const targets = { easy: 200, medium: 380, hard: 500 };
-        const target  = targets[diff] !== undefined ? targets[diff] : 380;
-        const puzzle  = copy3(sol);
-        const cells   = [];
-        for (let x = 0; x < 9; x++)
-          for (let y = 0; y < 9; y++)
-            for (let z = 0; z < 9; z++)
+      function makePuzzle(sol, diff, N) {
+        // Same removal proportions as original N=9 targets
+        const frac = { easy: 200/729, medium: 380/729, hard: 500/729 };
+        const target = Math.round((frac[diff] !== undefined ? frac[diff] : frac.medium) * N*N*N);
+        const puzzle = copy3(sol);
+        const cells  = [];
+        for (let x = 0; x < N; x++)
+          for (let y = 0; y < N; y++)
+            for (let z = 0; z < N; z++)
               cells.push([x, y, z]);
         shuffle(cells);
         let removed = 0;
@@ -540,8 +725,9 @@
         return puzzle;
       }
       onmessage = function(e) {
-        const sol    = genSolution();
-        const puzzle = makePuzzle(sol, e.data.diff);
+        const { diff, N } = e.data;
+        const sol    = genSolution(N);
+        const puzzle = makePuzzle(sol, diff, N);
         postMessage({ sol, puzzle });
       };
     `;
@@ -553,31 +739,31 @@
       const url  = URL.createObjectURL(blob);
       puzzleWorker = new Worker(url);
       puzzleWorker.onmessage = e => { URL.revokeObjectURL(url); callback(e.data); };
-      puzzleWorker.postMessage({ diff });
+      puzzleWorker.postMessage({ diff, N });
     }
 
     // Main-thread copies of logic (for conflict detection during play)
     function make3(v = 0) {
-      return Array.from({ length: 9 }, () =>
-        Array.from({ length: 9 }, () => Array(9).fill(v)));
+      return Array.from({ length: N }, () =>
+        Array.from({ length: N }, () => Array(N).fill(v)));
     }
     function copy3(g) { return g.map(a => a.map(b => [...b])); }
 
     function isValid(g, x, y, z, n) {
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < N; i++) {
         if (g[i][y][z] === n) return false;
         if (g[x][i][z] === n) return false;
         if (g[x][y][i] === n) return false;
       }
-      const sx = Math.floor(x/3)*3, sy = Math.floor(y/3)*3, sz = Math.floor(z/3)*3;
-      for (let a = sx; a < sx+3; a++)
-        for (let b = sy; b < sy+3; b++)
+      const sx = Math.floor(x/K)*K, sy = Math.floor(y/K)*K, sz = Math.floor(z/K)*K;
+      for (let a = sx; a < sx+K; a++)
+        for (let b = sy; b < sy+K; b++)
           if (g[a][b][z] === n) return false;
-      for (let a = sx; a < sx+3; a++)
-        for (let c = sz; c < sz+3; c++)
+      for (let a = sx; a < sx+K; a++)
+        for (let c = sz; c < sz+K; c++)
           if (g[a][y][c] === n) return false;
-      for (let b = sy; b < sy+3; b++)
-        for (let c = sz; c < sz+3; c++)
+      for (let b = sy; b < sy+K; b++)
+        for (let c = sz; c < sz+K; c++)
           if (g[x][b][c] === n) return false;
       return true;
     }
@@ -585,9 +771,9 @@
     function getConflicts(player) {
       const bad = new Set();
       const c   = copy3(player);
-      for (let x = 0; x < 9; x++)
-        for (let y = 0; y < 9; y++)
-          for (let z = 0; z < 9; z++) {
+      for (let x = 0; x < N; x++)
+        for (let y = 0; y < N; y++)
+          for (let z = 0; z < N; z++) {
             const v = c[x][y][z];
             if (!v) continue;
             c[x][y][z] = 0;
@@ -631,8 +817,20 @@
     };
 
     function newGame() {
+      const newN = parseInt(document.getElementById('sel-size').value);
+      const sizeChanged = newN !== N;
+      N = newN;
+      K = Math.round(Math.sqrt(N));
+
       S.solved = false;
       S.sel    = null;
+
+      if (sizeChanged) {
+        buildScene();
+        buildNumButtons();
+        applyCubeScale();
+      }
+
       showLoading(true);
 
       startWorker(S.diff, ({ sol, puzzle }) => {
@@ -640,9 +838,9 @@
         S.clues  = make3(false);
         S.player = make3(0);
 
-        for (let x = 0; x < 9; x++)
-          for (let y = 0; y < 9; y++)
-            for (let z = 0; z < 9; z++)
+        for (let x = 0; x < N; x++)
+          for (let y = 0; y < N; y++)
+            for (let z = 0; z < N; z++)
               if (puzzle[x][y][z]) {
                 S.clues[x][y][z]  = true;
                 S.player[x][y][z] = puzzle[x][y][z];
@@ -654,11 +852,7 @@
         redraw();
         syncUI();
         showLoading(false);
-        adBreak({
-          type: 'browse',
-          name: 'new_game',
-          adBreakDone: () => startTimer()
-        });
+        startTimer();
       });
     }
 
@@ -674,20 +868,23 @@
     };
     const AXIS_CSS = { x: '#e05555', y: '#44c45a', z: '#4488cc' };
 
-    const SP        = 0.7;   // centre-to-centre spacing within a 3×3 band
+    const SP        = 0.7;   // centre-to-centre spacing within a K×K band
     const CS        = 0.6;   // cube side length
-    const BLOCK_GAP = 0.1;   // extra gap between 3×3 bands
+    const BLOCK_GAP = 0.1;   // extra gap between K×K bands
 
-    /** Position on one axis: 9 cells in 3 bands of 3, with BLOCK_GAP between bands */
+    let N = 9;   // current cube size: 4, 9, or 16
+    let K = 3;   // block size = sqrt(N)
+
+    /** Position on one axis: N cells in K bands of K, with BLOCK_GAP between bands */
     function bp(i) {
-      return (i - 4) * SP + (Math.floor(i / 3) - 1) * BLOCK_GAP;
+      return (i - (N-1)/2) * SP + (Math.floor(i/K) - (K-1)/2) * BLOCK_GAP;
     }
 
     // Added bgScene to handle the background structure
     let rndr, scene, bgScene, cam, pivot, bgGroup;
-    const meshes   = {}; // key → THREE.Mesh (cell face)
-    const eLines   = {}; // key → THREE.LineSegments (cell edges)
-    const faceData = {}; // key → [{mat, ctx, tex}, …] for +Z, +X, +Y faces
+    let meshes   = {}; // key → THREE.Mesh (cell face)
+    let eLines   = {}; // key → THREE.LineSegments (cell edges)
+    let faceData = {}; // key → [{mat, ctx, tex}, …] for +Z, +X, +Y faces
     const rc     = new THREE.Raycaster();
     const pt     = new THREE.Vector2();
 
@@ -714,7 +911,7 @@
       const adW  = getAdWidth();
       const a    = (innerWidth - 2 * adW) / innerHeight;
       const uiH  = document.getElementById('ui').getBoundingClientRect().height || 110;
-      const D    = (8 * SP + 2 * BLOCK_GAP + CS) / 2;  // world half-span of the cube
+      const D    = ((N-1) * SP + (K-1) * BLOCK_GAP + CS) / 2;  // world half-span of the cube
       const projHalfW = D * Math.SQRT2;                 // isometric horizontal half-extent
       const projHalfH = 4 * D / Math.sqrt(6);           // isometric vertical half-extent
       const FILL = 0.88;
@@ -732,62 +929,42 @@
       needsRender = true;
     }
 
-    function initThree() {
-      const con = document.getElementById('container');
+    function buildScene() {
+      // ── Clear existing scene objects ──
+      while (pivot.children.length > 0) pivot.remove(pivot.children[0]);
+      while (bgGroup.children.length > 0) bgGroup.remove(bgGroup.children[0]);
+      meshes   = {};
+      eLines   = {};
+      faceData = {};
 
-      rndr = new THREE.WebGLRenderer({ antialias: !isMobile });
-      rndr.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.5 : 2));
-      rndr.setSize(innerWidth, innerHeight);
-      rndr.setClearColor(0x050a0e);
-      con.appendChild(rndr.domElement);
-
-      scene = new THREE.Scene();
-      bgScene = new THREE.Scene();
-
-      const a = innerWidth / innerHeight;
-      const s = computeViewSize();
-      const vs = computeVShift(s);
-      cam = new THREE.OrthographicCamera(-a * s, a * s, s + vs, -s + vs, -50, 50);
-      cam.position.set(7, 7, 7);
-      cam.lookAt(0, 0, 0);
-
-      pivot = new THREE.Group();
-      scene.add(pivot);
-
-      // ── Background Cube Outline ──
-      bgGroup = new THREE.Group();
-      // Size perfectly wrapping one 3x3x3 block
-      const bSize = 2 * SP + CS;
-      const bgGeo = new THREE.BoxGeometry(bSize, bSize, bSize);
+      // ── Background K×K×K block outline grid ──
+      const bSize = (K-1) * SP + CS; // span of K cells
+      const bgGeo   = new THREE.BoxGeometry(bSize, bSize, bSize);
       const bgEdges = new THREE.EdgesGeometry(bgGeo);
-      // Faint green line to sit in the background
-      const bgMat = new THREE.LineBasicMaterial({ 
-        color: 0x0a2a18, 
-        transparent: true, 
-        opacity: 0.6 
+      const bgMat   = new THREE.LineBasicMaterial({
+        color: 0x0a2a18, transparent: true, opacity: 0.6
       });
-
-      // Assemble the 27 blocks representing the 3x3x3 framework
-      for (let bx of [1, 4, 7]) {
-        for (let by of [1, 4, 7]) {
-          for (let bz of [1, 4, 7]) {
+      for (let bx = 0; bx < K; bx++)
+        for (let by = 0; by < K; by++)
+          for (let bz = 0; bz < K; bz++) {
             const box = new THREE.LineSegments(bgEdges, bgMat);
-            box.position.set(bp(bx), bp(by), bp(8 - bz)); // <-- Inverted visual Z
+            // Centre of block group bi along each axis:
+            const px = (bx*K + (K-1)/2 - (N-1)/2) * SP + (bx - (K-1)/2) * BLOCK_GAP;
+            const py = (by*K + (K-1)/2 - (N-1)/2) * SP + (by - (K-1)/2) * BLOCK_GAP;
+            const pz = (bz*K + (K-1)/2 - (N-1)/2) * SP + (bz - (K-1)/2) * BLOCK_GAP;
+            box.position.set(px, py, pz);
             bgGroup.add(box);
           }
-        }
-      }
-      bgScene.add(bgGroup);
 
-      // Shared geometries for active cells
+      // ── Active cell meshes (N×N×N) ──
       const bGeo = new THREE.BoxGeometry(CS, CS, CS);
       const eGeo = new THREE.EdgesGeometry(bGeo);
 
-      for (let x = 0; x < 9; x++)
-        for (let y = 0; y < 9; y++)
-          for (let z = 0; z < 9; z++) {
+      for (let x = 0; x < N; x++)
+        for (let y = 0; y < N; y++)
+          for (let z = 0; z < N; z++) {
             const k   = `${x},${y},${z}`;
-            const pos = new THREE.Vector3(bp(x), bp(y), bp(8 - z)); // <-- Inverted visual Z
+            const pos = new THREE.Vector3(bp(x), bp(y), bp(N-1-z)); // inverted visual Z
 
             // ── Cell face mesh ──
             const mesh = new THREE.Mesh(
@@ -821,7 +998,7 @@
               { pos: [0,         CS/2+.003, 0        ], rot: [-Math.PI/2, 0, 0] },
             ];
             const pGeo = new THREE.PlaneGeometry(CS * 0.96, CS * 0.96);
-            faceData[k] = FACE_DEFS.map(({ pos, rot }) => {
+            faceData[k] = FACE_DEFS.map(({ pos: fpos, rot }) => {
               const canvas = document.createElement('canvas');
               canvas.width = canvas.height = CANVAS_W;
               const ctx = canvas.getContext('2d');
@@ -831,7 +1008,7 @@
                 side: THREE.FrontSide
               });
               const plane = new THREE.Mesh(pGeo, mat);
-              plane.position.set(...pos);
+              plane.position.set(...fpos);
               plane.rotation.set(...rot);
               plane.visible = false;
               mesh.add(plane);
@@ -841,32 +1018,67 @@
 
       buildBlockFrames();
       applyCubeScale();
+    }
+
+    function initThree() {
+      const con = document.getElementById('container');
+
+      rndr = new THREE.WebGLRenderer({ antialias: !isMobile });
+      rndr.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.5 : 2));
+      rndr.setSize(innerWidth, innerHeight);
+      rndr.setClearColor(0x050a0e);
+      con.appendChild(rndr.domElement);
+
+      scene   = new THREE.Scene();
+      bgScene = new THREE.Scene();
+
+      const a = innerWidth / innerHeight;
+      const s = computeViewSize();
+      const vs = computeVShift(s);
+      cam = new THREE.OrthographicCamera(-a * s, a * s, s + vs, -s + vs, -50, 50);
+      cam.position.set(7, 7, 7);
+      cam.lookAt(0, 0, 0);
+
+      pivot = new THREE.Group();
+      scene.add(pivot);
+
+      bgGroup = new THREE.Group();
+      bgScene.add(bgGroup);
+
+      buildScene();
 
       con.addEventListener('pointerdown', onClick);
       document.addEventListener('keydown', onKey);
       window.addEventListener('resize', onResize);
     }
 
-    // blockFrames[axis][slice] = array of 9 LineSegments (one per 3×3 block)
+    // blockFrames[axis][slice] = array of K² LineSegments (one per K×K block)
     const blockFrames = { x: [], y: [], z: [] };
 
     function buildBlockFrames() {
-      const blockSize = 2 * SP + CS;
+      const blockSize = (K-1) * SP + CS; // span of K cells
       const bGeo = new THREE.BoxGeometry(1, 1, 1);
       const eGeo = new THREE.EdgesGeometry(bGeo);
 
+      // Helper: world-space centre of block group bi on one axis
+      function blockCentre(bi) {
+        let c = 0;
+        for (let j = 0; j < K; j++) c += bp(bi*K + j);
+        return c / K;
+      }
+
       ['x','y','z'].forEach(axis => {
         blockFrames[axis] = [];
-        for (let si = 0; si < 9; si++) {
+        for (let si = 0; si < N; si++) {
           const frames = [];
-          for (let bi = 0; bi < 3; bi++) {
-            for (let bj = 0; bj < 3; bj++) {
-              const c0 = (bp(bi*3) + bp(bi*3+1) + bp(bi*3+2)) / 3;
-              const c1 = (bp(bj*3) + bp(bj*3+1) + bp(bj*3+2)) / 3;
+          for (let bi = 0; bi < K; bi++) {
+            for (let bj = 0; bj < K; bj++) {
+              const c0 = blockCentre(bi);
+              const c1 = blockCentre(bj);
               const cs = bp(si);
 
               let px, py, pz, sx, sy, sz;
-              if (axis === 'z')      { px=c0; py=c1; pz=bp(8 - si); sx=blockSize; sy=blockSize; sz=CS; } // <-- Inverted visual Z
+              if (axis === 'z')      { px=c0; py=c1; pz=bp(N-1-si); sx=blockSize; sy=blockSize; sz=CS; } // inverted visual Z
               else if (axis === 'x') { px=cs; py=c0; pz=c1; sx=CS; sy=blockSize; sz=blockSize; }
               else                   { px=c0; py=cs; pz=c1; sx=blockSize; sy=CS; sz=blockSize; }
 
@@ -908,6 +1120,10 @@
     }
 
     const CANVAS_W = 64;
+    // In 16×16 mode, values 10-16 display as A-G (single char, easier to read)
+    function valLabel(v) {
+      return (N === 16 && v >= 10) ? String.fromCharCode(55 + v) : String(v); // 55+10='A', 55+16='G'
+    }
 
     function drawFace(ctx, tex, num, color, glowColor) {
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_W);
@@ -919,11 +1135,11 @@
         ctx.shadowColor = 'rgba(0,0,0,0.85)';
         ctx.shadowBlur  = 18;
         ctx.fillStyle   = color;
-        ctx.fillText(String(num), CANVAS_W / 2, CANVAS_W / 2);
+        ctx.fillText(valLabel(num), CANVAS_W / 2, CANVAS_W / 2);
         if (glowColor) {
           ctx.shadowColor = glowColor;
           ctx.shadowBlur  = 28;
-          ctx.fillText(String(num), CANVAS_W / 2, CANVAS_W / 2);
+          ctx.fillText(valLabel(num), CANVAS_W / 2, CANVAS_W / 2);
         }
         ctx.shadowBlur = 0;
       }
@@ -940,7 +1156,7 @@
       const highlightKeys = new Set();
       if (S.sel) {
         const { x: sx, y: sy, z: sz } = S.sel;
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < N; i++) {
           if      (S.axis === 'z') { highlightKeys.add(`${i},${sy},${S.slice}`); highlightKeys.add(`${sx},${i},${S.slice}`); }
           else if (S.axis === 'x') { highlightKeys.add(`${S.slice},${sy},${i}`); highlightKeys.add(`${S.slice},${i},${sz}`); }
           else                     { highlightKeys.add(`${sx},${S.slice},${i}`); highlightKeys.add(`${i},${S.slice},${sz}`); }
@@ -952,7 +1168,7 @@
       const previewKeys = new Set();
       if (S.sel && S.showPreview) {
         const { x: sx, y: sy, z: sz } = S.sel;
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < N; i++) {
           if (S.axis === 'z') previewKeys.add(`${sx},${sy},${i}`);
           else if (S.axis === 'x') previewKeys.add(`${i},${sy},${sz}`);
           else                     previewKeys.add(`${sx},${i},${sz}`);
@@ -971,9 +1187,9 @@
         });
       });
 
-      for (let x = 0; x < 9; x++)
-        for (let y = 0; y < 9; y++)
-          for (let z = 0; z < 9; z++) {
+      for (let x = 0; x < N; x++)
+        for (let y = 0; y < N; y++)
+          for (let z = 0; z < N; z++) {
             const k       = `${x},${y},${z}`;
             const mesh    = meshes[k];
             const mat     = mesh.material;
@@ -1093,9 +1309,9 @@
     }
 
     function checkWin() {
-      for (let x = 0; x < 9; x++)
-        for (let y = 0; y < 9; y++)
-          for (let z = 0; z < 9; z++)
+      for (let x = 0; x < N; x++)
+        for (let y = 0; y < N; y++)
+          for (let z = 0; z < N; z++)
             if (!S.player[x][y][z]) return;
       if (getConflicts(S.player).size > 0) return;
       S.solved = true;
@@ -1116,90 +1332,91 @@
 
       const toFire = [];
 
+      const M = N - 1; // max index shorthand
       // X-lines (y,z fixed)
       {
-        const cells = []; for (let i = 0; i < 9; i++) cells.push([i,y,z]);
+        const cells = []; for (let i = 0; i < N; i++) cells.push([i,y,z]);
         const key = `xl_${y}_${z}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([0,y,z],[8,y,z]));
+          toFire.push(worldCentre([0,y,z],[M,y,z]));
         }
       }
       // Y-lines (x,z fixed)
       {
-        const cells = []; for (let i = 0; i < 9; i++) cells.push([x,i,z]);
+        const cells = []; for (let i = 0; i < N; i++) cells.push([x,i,z]);
         const key = `yl_${x}_${z}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([x,0,z],[x,8,z]));
+          toFire.push(worldCentre([x,0,z],[x,M,z]));
         }
       }
       // Z-lines (x,y fixed)
       {
-        const cells = []; for (let i = 0; i < 9; i++) cells.push([x,y,i]);
+        const cells = []; for (let i = 0; i < N; i++) cells.push([x,y,i]);
         const key = `zl_${x}_${y}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([x,y,0],[x,y,8]));
+          toFire.push(worldCentre([x,y,0],[x,y,M]));
         }
       }
       // Z-slice
       {
-        const cells = []; for(let a=0;a<9;a++) for(let b=0;b<9;b++) cells.push([a,b,z]);
+        const cells = []; for(let a=0;a<N;a++) for(let b=0;b<N;b++) cells.push([a,b,z]);
         const key = `zs_${z}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([0,0,z],[8,8,z]));
+          toFire.push(worldCentre([0,0,z],[M,M,z]));
         }
       }
       // X-slice
       {
-        const cells = []; for(let b=0;b<9;b++) for(let c=0;c<9;c++) cells.push([x,b,c]);
+        const cells = []; for(let b=0;b<N;b++) for(let c=0;c<N;c++) cells.push([x,b,c]);
         const key = `xs_${x}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([x,0,0],[x,8,8]));
+          toFire.push(worldCentre([x,0,0],[x,M,M]));
         }
       }
       // Y-slice
       {
-        const cells = []; for(let a=0;a<9;a++) for(let c=0;c<9;c++) cells.push([a,y,c]);
+        const cells = []; for(let a=0;a<N;a++) for(let c=0;c<N;c++) cells.push([a,y,c]);
         const key = `ys_${y}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([0,y,0],[8,y,8]));
+          toFire.push(worldCentre([0,y,0],[M,y,M]));
         }
       }
-      // 3×3 boxes on each plane
-      const bx = Math.floor(x/3)*3, by = Math.floor(y/3)*3, bz = Math.floor(z/3)*3;
+      // K×K boxes on each plane
+      const bx = Math.floor(x/K)*K, by = Math.floor(y/K)*K, bz = Math.floor(z/K)*K;
       // XY box at fixed z
       {
         const cells = [];
-        for (let a = bx; a < bx+3; a++) for (let b = by; b < by+3; b++) cells.push([a,b,z]);
+        for (let a = bx; a < bx+K; a++) for (let b = by; b < by+K; b++) cells.push([a,b,z]);
         const key = `bxy_${bx}_${by}_${z}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([bx,by,z],[bx+2,by+2,z]));
+          toFire.push(worldCentre([bx,by,z],[bx+K-1,by+K-1,z]));
         }
       }
       // XZ box at fixed y
       {
         const cells = [];
-        for (let a = bx; a < bx+3; a++) for (let c = bz; c < bz+3; c++) cells.push([a,y,c]);
+        for (let a = bx; a < bx+K; a++) for (let c = bz; c < bz+K; c++) cells.push([a,y,c]);
         const key = `bxz_${bx}_${y}_${bz}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([bx,y,bz],[bx+2,y,bz+2]));
+          toFire.push(worldCentre([bx,y,bz],[bx+K-1,y,bz+K-1]));
         }
       }
       // YZ box at fixed x
       {
         const cells = [];
-        for (let b = by; b < by+3; b++) for (let c = bz; c < bz+3; c++) cells.push([x,b,c]);
+        for (let b = by; b < by+K; b++) for (let c = bz; c < bz+K; c++) cells.push([x,b,c]);
         const key = `byz_${x}_${by}_${bz}`;
         if (!celebratedGroups.has(key) && groupComplete(cells)) {
           celebratedGroups.add(key);
-          toFire.push(worldCentre([x,by,bz],[x,by+2,bz+2]));
+          toFire.push(worldCentre([x,by,bz],[x,by+K-1,bz+K-1]));
         }
       }
 
@@ -1207,9 +1424,8 @@
     }
 
     function worldCentre([ax,ay,az],[bx,by,bz]) {
-      // <-- Inverted visual Z logic added to fireworks
       const sc = pivot.scale.x;
-      const wx = (bp(ax)+bp(bx))/2*sc, wy = (bp(ay)+bp(by))/2*sc, wz = (bp(8 - az)+bp(8 - bz))/2*sc;
+      const wx = (bp(ax)+bp(bx))/2*sc, wy = (bp(ay)+bp(by))/2*sc, wz = (bp(N-1-az)+bp(N-1-bz))/2*sc;
       const v = new THREE.Vector3(wx, wy, wz);
       v.project(cam);
       const sx = (v.x * 0.5 + 0.5) * innerWidth;
@@ -1218,7 +1434,7 @@
     }
 
     function chSlice(d) {
-      S.slice = ((S.slice + d) % 9 + 9) % 9;
+      S.slice = ((S.slice + d) % N + N) % N;
       S.sel   = null;
       redraw();
       syncUI();
@@ -1227,7 +1443,10 @@
     function onKey(e) {
       if (e.metaKey || e.ctrlKey || S.solved) return;
       const k = e.key;
-      if ('123456789'.includes(k) && k.length === 1) { e.preventDefault(); fill(+k); }
+      const n = parseInt(k);
+      if (!isNaN(n) && n >= 1 && n <= N && k.length === 1) { e.preventDefault(); fill(n); }
+      else if (N === 16 && k.length === 1 && k >= 'a' && k <= 'g') { e.preventDefault(); fill(k.charCodeAt(0) - 87); } // a=10..g=16
+      else if (N === 16 && k.length === 1 && k >= 'A' && k <= 'G') { e.preventDefault(); fill(k.charCodeAt(0) - 55); } // A=10..G=16
       else if (k === 'Backspace' || k === 'Delete') { e.preventDefault(); clrCell(); }
       else if (k === 'ArrowRight' || k === 'ArrowUp')   { e.preventDefault(); chSlice(+1); }
       else if (k === 'ArrowLeft'  || k === 'ArrowDown')  { e.preventDefault(); chSlice(-1); }
@@ -1251,7 +1470,7 @@
         btn.classList.toggle('active-z', S.axis === a && a === 'z');
       });
       const lbl = document.getElementById('slice-lbl');
-      lbl.textContent = `${S.slice + 1} / 9`;
+      lbl.textContent = `${S.slice + 1} / ${N}`;
       lbl.style.color = AXIS_CSS[S.axis];
     }
 
@@ -1310,9 +1529,9 @@
     }
 
     function burstAll() {
-      for (let x = 0; x < 9; x++)
-        for (let y = 0; y < 9; y++)
-          for (let z = 0; z < 9; z++) {
+      for (let x = 0; x < N; x++)
+        for (let y = 0; y < N; y++)
+          for (let z = 0; z < N; z++) {
             const [sx, sy] = worldCentre([x,y,z],[x,y,z]);
             setTimeout(() => spawnStars(sx, sy), Math.random() * 600);
           }
@@ -1370,9 +1589,34 @@
       }
     }
 
+    function buildNumButtons() {
+      const container = document.getElementById('num-btns');
+      container.innerHTML = '';
+      // N=16 uses slightly smaller buttons (single-char labels A-G keep them readable)
+      const btnW = N === 16 ? '26px' : '30px';
+      const btnH = N === 16 ? '26px' : '30px';
+      const btnFs = N === 16 ? '7px' : '9px';
+      for (let i = 1; i <= N; i++) {
+        const b = document.createElement('button');
+        b.className = 'nbtn';
+        b.dataset.n = i;
+        b.textContent = valLabel(i); // A-G for 10-16 in N=16 mode
+        b.style.cssText = `width:${btnW};height:${btnH};font-size:${btnFs}`;
+        b.addEventListener('click', () => fill(+b.dataset.n));
+        container.appendChild(b);
+      }
+      const del = document.createElement('button');
+      del.id = 'btn-clr';
+      del.textContent = 'DEL';
+      del.style.cssText = `width:${btnW};height:${btnH};font-size:${N === 16 ? '5px' : '7px'}`;
+      del.addEventListener('click', clrCell);
+      container.appendChild(del);
+    }
+
     function init() {
       resizeFx();
       initThree();
+      buildNumButtons();
 
       ['x', 'y', 'z'].forEach(a =>
         document.getElementById(`btn-${a}`).addEventListener('click', () =>
@@ -1380,10 +1624,6 @@
 
       document.getElementById('btn-prev').addEventListener('click', () => chSlice(-1));
       document.getElementById('btn-next').addEventListener('click', () => chSlice(+1));
-
-      document.querySelectorAll('.nbtn').forEach(b =>
-        b.addEventListener('click', () => fill(+b.dataset.n)));
-      document.getElementById('btn-clr').addEventListener('click', clrCell);
 
       document.getElementById('btn-new').addEventListener('click', () => {
         S.diff = document.getElementById('sel-diff').value;
@@ -1409,18 +1649,6 @@
       });
 
       loop();
-
-      // Inject lateral banner ads only on desktop to prevent AdSense policy violations
-      // for empty <ins> tags or hidden fixed-size ads on mobile devices.
-      if (window.innerWidth >= 960) {
-        document.getElementById('ad-left').innerHTML = 
-          '<ins class="adsbygoogle" style="display:inline-block;width:160px;height:600px" data-ad-client="ca-pub-8335884863674458" data-ad-slot="YOUR_LEFT_SLOT_ID"></ins>';
-        document.getElementById('ad-right').innerHTML = 
-          '<ins class="adsbygoogle" style="display:inline-block;width:160px;height:600px" data-ad-client="ca-pub-8335884863674458" data-ad-slot="YOUR_RIGHT_SLOT_ID"></ins>';
-        
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      }
 
       // First puzzle — wait for Press Start 2P to load so canvas text renders correctly
       document.fonts.load('12px "Press Start 2P"').finally(() => {
